@@ -1,26 +1,32 @@
-from scripts.reddit_worker import fetch_reddit_posts
+from scripts.koreanizer import koreanize_story
 from scripts.gemini_writer import generate_ssul
+from scripts.reddit_worker import fetch_reddit_posts
 from scripts.reddit_scorer import pick_best_post
+
 
 def run():
 
-    # 1. Reddit 여러 개 가져오기
     posts = fetch_reddit_posts(limit=5)
 
-    # 2. 가장 좋은 글 1개 선택
     best_post = pick_best_post(posts)
 
-    print("\n===== 선택된 원본 =====")
-    print(best_post["title"])
-
-    # 3. 썰 생성
-    result = generate_ssul(
+    # 1️⃣ 먼저 한국화
+    korean_story = koreanize_story(
         best_post["title"],
         best_post["content"]
     )
 
+    print("\n===== 한국화 결과 =====")
+    print(korean_story)
+
+    # 2️⃣ 그걸 다시 썰로 변환
+    final_script = generate_ssul(
+        best_post["title"],
+        korean_story
+    )
+
     print("\n===== 최종 썰 =====")
-    print(result)
+    print(final_script)
 
 
 if __name__ == "__main__":
