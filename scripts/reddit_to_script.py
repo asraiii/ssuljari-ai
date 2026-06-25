@@ -120,3 +120,7 @@ Reddit 본문
 
 {content_text}
 """
+
+print("STEP1: Reddit 가져오는 중")
+print("title:", title_text)
+print("content:", content_text[:200])
