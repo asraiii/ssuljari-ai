@@ -1,3 +1,20 @@
-print("안녕하세요")
-print("저는 썰자리 AI 직원 1호입니다.")
-print("오늘의 썰을 찾으러 출근했습니다.")
+import requests
+import xml.etree.ElementTree as ET
+
+url = "https://www.reddit.com/r/AITAH/.rss"
+
+headers = {
+    "User-Agent": "ssuljari-ai"
+}
+
+response = requests.get(url, headers=headers)
+
+root = ET.fromstring(response.text)
+
+print("=== 오늘의 AITAH 썰 ===")
+
+for item in root.findall("{http://www.w3.org/2005/Atom}entry")[:5]:
+    title = item.find("{http://www.w3.org/2005/Atom}title")
+
+    if title is not None:
+        print(title.text)
