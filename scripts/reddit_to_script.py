@@ -3,27 +3,69 @@ import requests
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
 import re
+import random
 
 # =========================
-# GEMINI SETUP
+# Gemini 설정
 # =========================
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 # =========================
-# REDDIT FETCH
+# Reddit RSS
 # =========================
 url = "https://www.reddit.com/r/AITAH/.rss"
-headers = {"User-Agent": "ssuljari-ai"}
+
+headers = {
+    "User-Agent": "ssuljari-ai"
+}
 
 response = requests.get(url, headers=headers)
 root = ET.fromstring(response.text)
 
 ns = {"atom": "http://www.w3.org/2005/Atom"}
+
 entries = root.findall("atom:entry", ns)
 
 # =========================
-# 후보 수집 (5개)
+# 금지 키워드
+# =========================
+banned_keywords = [
+    "wedding", "marriage", "bride", "groom",
+    "guest", "rsvp", "ceremony",
+    "religion", "church", "priest"
+]
+
+# =========================
+# 점수 함수
+# =========================
+def score_post(title):
+    score = 0
+    title_lower = title.lower()
+
+    # 클릭 유도 키워드
+    hooks = [
+        "aitah", "cheated", "caught", "secret",
+        "hidden", "lied", "revenge", "divorce",
+        "ex", "boss", "job", "salary", "pay"
+    ]
+
+    for h in hooks:
+        if h in title_lower:
+            score += 2
+
+    # 길이 적당하면 추가 점수
+    if 30 < len(title) < 120:
+        score += 1
+
+    # 물음형이면 추가
+    if "?" in title:
+        score += 1
+
+    return score
+
+# =========================
+# 후보 글 수집
 # =========================
 candidates = []
 
@@ -37,125 +79,98 @@ for entry in entries:
     title_text = title.text or ""
     content_text = content.text or ""
 
-    # HTML 제거
-    content_text = re.sub(r"<.*?>", "", content_text)
+    title_lower = title_text.lower()
 
-    # 너무 짧은 글 제외
-    if len(content_text) < 200:
+    # 필터
+    if any(word in title_lower for word in banned_keywords):
         continue
+    if "rule" in title_lower or "karma" in title_lower:
+        continue
+
+    score = score_post(title_text)
 
     candidates.append({
         "title": title_text,
-        "content": content_text[:2000]
+        "content": content_text[:3000],
+        "score": score
     })
 
-    if len(candidates) >= 5:
-        break
+# =========================
+# 상위 5개 중 랜덤 선택
+# =========================
+candidates = sorted(candidates, key=lambda x: x["score"], reverse=True)[:5]
 
-# =========================
-# 후보 부족 방지
-# =========================
-if len(candidates) == 0:
-    print("No Reddit posts found")
+if not candidates:
+    print("No valid posts found")
     exit()
 
-# =========================
-# 🔥 1. 조회수 점수 시스템
-# =========================
-score_prompt = """
-너는 유튜브 쇼츠 데이터 분석가다.
+picked = random.choice(candidates)
 
-아래 Reddit 글 중
-조회수 가장 잘 나올 순서를 골라라.
-
-기준:
-- 감정 강도 (중요)
-- 갈등 구조
-- 배신 / 연애 / 직장 / 인간관계
-- 한방 반전 가능성
-- 쇼츠 몰입도
-
-출력:
-1~5 순위만 숫자로 나열
-
-예:
-3 1 5 2 4
-"""
-
-for i, c in enumerate(candidates, 1):
-    score_prompt += f"""
-
-[{i}]
-제목: {c['title']}
-내용: {c['content'][:200]}
-"""
-
-score_result = model.generate_content(score_prompt).text.strip()
-
-print("\n===== SCORE RESULT =====")
-print(score_result)
+title_text = picked["title"]
+content_text = picked["content"]
 
 # =========================
-# 점수 해석 (1등 뽑기)
+# HTML 제거
 # =========================
-numbers = re.findall(r"\d", score_result)
-
-if numbers:
-    best_index = int(numbers[0]) - 1
-else:
-    best_index = 0
-
-best = candidates[best_index]
+content_text = re.sub(r"<.*?>", "", content_text)
 
 # =========================
-# 🔥 2. 썰 생성 + 제목 최적화
+# GEMINI PROMPT
 # =========================
-script_prompt = f"""
-너는 한국 유튜브 쇼츠 "썰자리" 작가다.
+prompt = f"""
+너는 유튜브 쇼츠 "썰자리" 전용 시나리오 작가다.
 
-목표:
-조회수 터지는 리얼 썰 제작
+목표
+- Reddit 실화를 한국 정서에 맞게 재구성
+- 주작처럼 보이지 않게 작성
+- 실제 직장인, 대학생, 연애 경험담처럼 작성
 
-규칙:
-- 1인칭
-- 짧은 문장
-- 감정 중심
-- 설명 금지
-- 현실 기반
-- 과장 금지
-- 쇼츠 리듬
+규칙
+- 등장인물 최대 3명
+- 반드시 1인칭
+- 한 줄당 한 문장
+- 45~60초 분량
+- 괄호 금지
+- 대사 표시 금지
+- 영상 설명 금지
 
-구조:
-1. 강한 훅
-2. 사건 발생
-3. 갈등
-4. 감정 폭발
-5. 짧은 결말
+중요
+- 첫 문장은 클릭 유도 훅
+- 첫 3줄 안에 사건 시작
+- 현실성 최우선
+- 억지 반전 금지
+- 회사 기밀 / 개인정보 유출 금지
+- 드라마 설정 금지
 
-반드시 출력:
+금지
+- 여러분이라면?
+- 제가 잘못한 걸까요?
+- 교훈
+- 억지 감동
+- 억지 사이다
 
-===== 제목 =====
-25자 이내 클릭형 제목
-
-===== 대본 =====
-쇼츠용 대본
-
----
+입력
 
 Reddit 제목:
-{best['title']}
+{title_text}
 
-Reddit 내용:
-{best['content']}
+Reddit 본문:
+{content_text}
+
+출력 형식
+
+===== 제목 =====
+(25자 이내)
+
+===== 대본 =====
 """
 
-response = model.generate_content(script_prompt)
-
 # =========================
-# OUTPUT
+# 실행
 # =========================
-print("\n===== BEST PICK =====")
-print(best["title"])
+print("STEP1 Reddit 분석")
 
-print("\n===== FINAL RESULT =====")
+response = model.generate_content(prompt)
+
+print("\n===== 결과 =====")
 print(response.text)
