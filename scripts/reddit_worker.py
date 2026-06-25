@@ -11,10 +11,24 @@ response = requests.get(url, headers=headers)
 
 root = ET.fromstring(response.text)
 
-print("=== 오늘의 AITAH 썰 ===")
+ns = {
+    "atom": "http://www.w3.org/2005/Atom"
+}
 
-for item in root.findall("{http://www.w3.org/2005/Atom}entry")[:5]:
-    title = item.find("{http://www.w3.org/2005/Atom}title")
+entries = root.findall("atom:entry", ns)
 
-    if title is not None:
-        print(title.text)
+print("===== Reddit 썰 =====")
+
+for entry in entries[:1]:
+
+    title = entry.find("atom:title", ns)
+
+    content = entry.find("atom:content", ns)
+
+    print()
+    print("제목:")
+    print(title.text)
+
+    print()
+    print("본문:")
+    print(content.text[:300])
