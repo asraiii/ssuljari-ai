@@ -1,36 +1,34 @@
 import requests
 import xml.etree.ElementTree as ET
 
-def get_best_reddit_post():
+url = "https://www.reddit.com/r/AITAH/.rss"
 
-    url = "https://www.reddit.com/r/AITAH/.rss"
+headers = {
+    "User-Agent": "ssuljari-ai"
+}
 
-    headers = {"User-Agent": "ssuljari-ai"}
+response = requests.get(url, headers=headers)
 
-    response = requests.get(url, headers=headers)
-    root = ET.fromstring(response.text)
+root = ET.fromstring(response.text)
 
-    ns = {"atom": "http://www.w3.org/2005/Atom"}
+ns = {
+    "atom": "http://www.w3.org/2005/Atom"
+}
 
-    entries = root.findall("atom:entry", ns)
+entries = root.findall("atom:entry", ns)
 
-    for entry in entries:
+print("===== Reddit 썰 =====")
 
-        title = entry.find("atom:title", ns)
-        content = entry.find("atom:content", ns)
+for entry in entries[:1]:
 
-        if title is None or content is None:
-            continue
+    title = entry.find("atom:title", ns)
 
-        if "rule" in title.text.lower():
-            continue
+    content = entry.find("atom:content", ns)
 
-        if "karma" in title.text.lower():
-            continue
+    print()
+    print("제목:")
+    print(title.text)
 
-        return {
-            "title": title.text,
-            "content": content.text[:2000]
-        }
-
-    return None
+    print()
+    print("본문:")
+    print(content.text[:300])
