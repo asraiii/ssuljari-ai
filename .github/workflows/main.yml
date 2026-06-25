@@ -8,5 +8,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Hello
-        run: echo "AI 직원 출근 완료!"
+      - name: 저장소 가져오기
+        uses: actions/checkout@v4
+
+      - name: Python 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: AI 직원 실행
+        run: python scripts/reddit_worker.py
