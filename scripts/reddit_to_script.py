@@ -2,10 +2,10 @@ import os
 import requests
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
+import re
 
 # Gemini 설정
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 # Reddit RSS
@@ -28,12 +28,13 @@ entries = root.findall("atom:entry", ns)
 title_text = ""
 content_text = ""
 
+# Reddit 글 하나 가져오기
 for entry in entries:
 
     title = entry.find("atom:title", ns)
     content = entry.find("atom:content", ns)
 
-    if title is None:
+    if title is None or content is None:
         continue
 
     if "rule" in title.text.lower():
@@ -47,17 +48,21 @@ for entry in entries:
 
     break
 
+# HTML 제거 (중요)
+content_text = re.sub(r"<.*?>", "", content_text)
+
+# =========================
+# GEMINI PROMPT
+# =========================
 prompt = f"""
 너는 한국 유튜브 쇼츠 채널 '썰자리'의 전문 작가다.
 
 목표
-
 - Reddit 실화를 한국 정서에 맞게 재구성
 - 실제 사람이 겪은 경험처럼 작성
 - 조회수가 잘 나오는 쇼츠 스타일로 작성
 
 규칙
-
 - 반드시 1인칭 시점
 - 한 줄당 한 문장
 - 짧고 읽기 쉽게 작성
@@ -68,41 +73,22 @@ prompt = f"""
 - 대사 표시 금지
 
 중요
-
 - 첫 문장은 반드시 강한 훅
 - 첫 3줄 안에 사건 시작
 - 배경 설명 최소화
 - 사건 전개 중심
 - 현실성 최우선
 - 억지 반전 금지
-- 실제 커뮤니티 썰처럼 작성
 
 금지
-
 - 여러분이라면?
 - 제가 잘못한 걸까요?
-- 어떻게 생각하시나요?
 - 교훈
-- 억지 감동
-- 억지 사이다
-
-절대 금지
-
-- 회사 기밀 유출
-- 인사팀이 연봉 공개
-- 개인정보 무단 조회
-- 해킹
-- 우연히 모든 것을 알게 되는 설정
 - 드라마 같은 설정
-- 영화 같은 반전
+- 회사 기밀 유출
 
 제목 규칙
-
-- 제목은 반드시 생성
-- 25자 이내
-- 클릭하고 싶게 작성
-- 과장 금지
-- 실제 경험담처럼 작성
+- 25자 이내 클릭 유도형
 
 출력 형식
 
@@ -112,15 +98,25 @@ prompt = f"""
 ===== 대본 =====
 대본
 
-Reddit 제목
-
+Reddit 제목:
 {title_text}
 
-Reddit 본문
-
+Reddit 본문:
 {content_text}
 """
 
+# =========================
+# GEMINI 실행 (이게 핵심!)
+# =========================
 print("STEP1: Reddit 가져오는 중")
 print("title:", title_text)
 print("content:", content_text[:200])
+
+response = model.generate_content(prompt)
+
+# =========================
+# 결과 출력
+# =========================
+print("\n==== GEMINI RAW RESPONSE ====")
+print(response.text)
+print("=============================")
