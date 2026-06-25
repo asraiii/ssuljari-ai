@@ -8,13 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 저장소 가져오기
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Python 설치
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: 라이브러리 설치
+        run: pip install -r requirements.txt
 
       - name: AI 직원 실행
         run: python scripts/reddit_worker.py
