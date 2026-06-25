@@ -1,34 +1,37 @@
 import requests
 import xml.etree.ElementTree as ET
+import re
 
-url = "https://www.reddit.com/r/AITAH/.rss"
+def get_reddit_post():
+    url = "https://www.reddit.com/r/AITAH/.rss"
+    headers = {"User-Agent": "ssuljari-ai"}
 
-headers = {
-    "User-Agent": "ssuljari-ai"
-}
+    response = requests.get(url, headers=headers)
+    root = ET.fromstring(response.text)
 
-response = requests.get(url, headers=headers)
+    ns = {"atom": "http://www.w3.org/2005/Atom"}
+    entries = root.findall("atom:entry", ns)
 
-root = ET.fromstring(response.text)
+    banned = ["wedding","marriage","bride","groom","guest","rsvp","ceremony"]
 
-ns = {
-    "atom": "http://www.w3.org/2005/Atom"
-}
+    for entry in entries:
+        title = entry.find("atom:title", ns)
+        content = entry.find("atom:content", ns)
 
-entries = root.findall("atom:entry", ns)
+        if not title or not content:
+            continue
 
-print("===== Reddit 썰 =====")
+        title_text = title.text or ""
+        content_text = content.text or ""
 
-for entry in entries[:1]:
+        if any(x in title_text.lower() for x in banned):
+            continue
 
-    title = entry.find("atom:title", ns)
+        content_text = re.sub(r"<.*?>", "", content_text)
 
-    content = entry.find("atom:content", ns)
+        return {
+            "title": title_text,
+            "content": content_text[:2000]
+        }
 
-    print()
-    print("제목:")
-    print(title.text)
-
-    print()
-    print("본문:")
-    print(content.text[:300])
+    return None
