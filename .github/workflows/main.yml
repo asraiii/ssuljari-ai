@@ -17,6 +17,6 @@ jobs:
       - name: 라이브러리 설치
         run: pip install -r requirements.txt
 
-      - name: Reddit 테스트
-        run: python scripts/reddit_worker.py
+      - name: Run pipeline
+        run: python pipeline.py
       
