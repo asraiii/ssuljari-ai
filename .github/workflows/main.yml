@@ -14,10 +14,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 라이브러리 설치
-        run: pip install -r requirements.txt
+      - name: install
+        run: pip install requests google-generativeai
 
-      - name: Reddit + Gemini 실행
+      - name: run
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/reddit_to_script.py
+        run: python scripts/main.py
