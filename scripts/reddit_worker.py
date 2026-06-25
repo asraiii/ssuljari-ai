@@ -1,45 +1,39 @@
 import requests
 import xml.etree.ElementTree as ET
 
-url = "https://www.reddit.com/r/AITAH/.rss"
+def fetch_reddit_posts(limit=5):
+    url = "https://www.reddit.com/r/AITAH/.rss"
 
-headers = {
-    "User-Agent": "ssuljari-ai"
-}
+    headers = {
+        "User-Agent": "ssuljari-ai"
+    }
 
-response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers)
+    root = ET.fromstring(response.text)
 
-root = ET.fromstring(response.text)
+    ns = {"atom": "http://www.w3.org/2005/Atom"}
+    entries = root.findall("atom:entry", ns)
 
-ns = {
-    "atom": "http://www.w3.org/2005/Atom"
-}
+    posts = []
 
-entries = root.findall("atom:entry", ns)
+    for entry in entries:
+        title = entry.find("atom:title", ns)
+        content = entry.find("atom:content", ns)
 
-print("===== Reddit 썰 =====")
+        if title is None or content is None:
+            continue
 
-for entry in entries:
+        t = title.text.lower()
 
-    title = entry.find("atom:title", ns)
+        if "rule" in t or "karma" in t:
+            continue
 
-    content = entry.find("atom:content", ns)
+        posts.append({
+            "title": title.text,
+            "content": content.text[:1500]
+        })
 
-    if title is None:
-        continue
+        if len(posts) >= limit:
+            break
 
-    if "rule" in title.text.lower():
-        continue
-
-    if "karma" in title.text.lower():
-        continue
-
-    print()
-    print("제목:")
-    print(title.text)
-
-    print()
-    print("본문:")
-    print(content.text[:500])
-
-    break
+    return posts
