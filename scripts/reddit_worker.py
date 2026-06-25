@@ -19,11 +19,20 @@ entries = root.findall("atom:entry", ns)
 
 print("===== Reddit 썰 =====")
 
-for entry in entries[:1]:
+for entry in entries:
 
     title = entry.find("atom:title", ns)
 
     content = entry.find("atom:content", ns)
+
+    if title is None:
+        continue
+
+    if "rule" in title.text.lower():
+        continue
+
+    if "karma" in title.text.lower():
+        continue
 
     print()
     print("제목:")
@@ -31,4 +40,6 @@ for entry in entries[:1]:
 
     print()
     print("본문:")
-    print(content.text[:300])
+    print(content.text[:500])
+
+    break
