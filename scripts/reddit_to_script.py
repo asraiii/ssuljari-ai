@@ -1,5 +1,10 @@
-from scripts.reddit_worker import get_best_reddit_post
-from scripts.gemini_writer import make_script
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__))
+
+from reddit_worker import get_best_reddit_post
+from gemini_writer import make_script
 
 post = get_best_reddit_post()
 
