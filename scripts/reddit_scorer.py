@@ -4,145 +4,133 @@ def score_post(title, content):
 
     score = 0
 
-    # =========================
-    # ❤️ 1. 연애 (70%)
-    # =========================
+    # ==========================
+    # 1. 연애 (최우선)
+    # ==========================
 
-    dating = [
-        "girlfriend",
-        "boyfriend",
-        "dating",
+    romance = [
+        "girlfriend","boyfriend",
+        "dating","date",
+        "crush","love",
         "relationship",
-        "love",
-        "crush",
-        "kiss",
-        "date",
-        "breakup",
-        "ex",
-        "ex girlfriend",
-        "ex boyfriend"
+        "fiance","proposal"
     ]
 
-    # =========================
-    # 💥 2. 바람 / 불륜 (20%)
-    # =========================
+    # ==========================
+    # 2. 불륜
+    # ==========================
 
-    cheating = [
-        "cheat",
-        "cheating",
+    affair = [
+        "cheat","cheating",
         "affair",
         "mistress",
-        "lover",
-        "secret relationship",
-        "slept with"
+        "other woman",
+        "other man"
     ]
 
-    # =========================
-    # 💍 3. 결혼 (8%)
-    # =========================
+    # ==========================
+    # 3. 결혼
+    # ==========================
 
     marriage = [
-        "wife",
-        "husband",
+        "wife","husband",
         "married",
-        "marriage",
         "wedding",
-        "fiance",
-        "proposal",
         "divorce"
     ]
 
-    # =========================
-    # 💼 4. 직장 (2%)
-    # =========================
+    # ==========================
+    # 4. 직장
+    # ==========================
 
     work = [
         "boss",
-        "manager",
         "coworker",
+        "manager",
         "office",
-        "company",
-        "work"
+        "company"
     ]
 
-    # =========================
+    # ==========================
+    # 감정
+    # ==========================
+
+    emotion = [
+        "cry",
+        "betray",
+        "shocked",
+        "furious",
+        "angry",
+        "heartbroken",
+        "toxic"
+    ]
+
+    # ==========================
+    # 반전
+    # ==========================
+
+    twist = [
+        "found out",
+        "turns out",
+        "later",
+        "however",
+        "but",
+        "secret",
+        "lied"
+    ]
+
+    # ==========================
     # 갈등
-    # =========================
+    # ==========================
 
     conflict = [
-        "argue",
         "fight",
-        "lied",
-        "secret",
-        "betray",
-        "cry",
-        "toxic",
-        "abuse",
-        "ignored",
-        "blocked",
-        "refused"
+        "argument",
+        "accuse",
+        "refuse",
+        "stormed",
+        "ignored"
     ]
 
-    # =========================
-    # Reddit 특징
-    # =========================
+    # ==========================
+    # 연애 70%
+    # ==========================
 
-    curiosity = [
-        "aitah",
-        "wibta",
-        "am i wrong",
-        "help"
-    ]
+    score += sum(10 for w in romance if w in text)
 
-    # =========================
-    # 점수
-    # =========================
+    # 불륜 20%
+    score += sum(8 for w in affair if w in text)
 
-    score += sum(8 for w in dating if w in text)
-    score += sum(6 for w in cheating if w in text)
-    score += sum(4 for w in marriage if w in text)
+    # 결혼 8%
+    score += sum(5 for w in marriage if w in text)
+
+    # 직장 2%
     score += sum(2 for w in work if w in text)
 
-    score += sum(3 for w in conflict if w in text)
-    score += sum(2 for w in curiosity if w in text)
+    # 감정
+    score += sum(5 for w in emotion if w in text)
 
-    # =========================
-    # 길이
-    # =========================
+    # 반전
+    score += sum(5 for w in twist if w in text)
 
-    if len(text) > 700:
-        score += 3
+    # 갈등
+    score += sum(4 for w in conflict if w in text)
 
-    if len(text) > 1500:
+    # AITAH 계열
+    if "aitah" in text:
         score += 5
 
-    # =========================
-    # 조회수 보너스
-    # =========================
+    if "wibta" in text:
+        score += 5
 
-    if "cheating" in text:
+    # 길이 보정
+    length = len(text)
+
+    if 700 <= length <= 2500:
         score += 10
 
-    if "affair" in text:
-        score += 10
-
-    if "breakup" in text:
-        score += 8
-
-    if "ex" in text:
-        score += 8
-
-    if "girlfriend" in text and "lied" in text:
-        score += 10
-
-    if "boyfriend" in text and "lied" in text:
-        score += 10
-
-    if "wife" in text and "cheating" in text:
-        score += 10
-
-    if "husband" in text and "cheating" in text:
-        score += 10
+    elif length < 300:
+        score -= 10
 
     return score
 
@@ -153,21 +141,24 @@ def pick_best_post(posts):
 
     for post in posts:
 
-        score = score_post(
+        s = score_post(
             post["title"],
             post["content"]
         )
 
-        scored.append((score, post))
+        scored.append((s, post))
 
     scored.sort(
         key=lambda x: x[0],
         reverse=True
     )
 
-    print("\n===== TOP POSTS =====")
+    print("\n===== TOP10 =====")
 
-    for score, post in scored:
-        print(f"{score}점 | {post['title']}")
+    for score, post in scored[:10]:
+
+        print(
+            f"[{score}] ({post['subreddit']}) {post['title']}"
+        )
 
     return scored[0][1]
