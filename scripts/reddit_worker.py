@@ -6,23 +6,10 @@ import xml.etree.ElementTree as ET
 # =========================
 
 SUBREDDITS = [
-
-    # 연애
     "relationship_advice",
-    "relationships",
-    "dating",
-    "BreakUps",
-
-    # 불륜
-    "survivinginfidelity",
-
-    # 갈등
     "AITAH",
     "AmIOverreacting",
-    "TrueOffMyChest",
-
-    # 직장 (조금만)
-    "work"
+    "TrueOffMyChest"
 ]
 
 
@@ -38,6 +25,24 @@ def fetch_reddit_posts(limit=10):
 
     posts = []
 
+    # 연애 키워드 필터 (핵심)
+    RELATIONSHIP_KEYWORDS = [
+        "boyfriend",
+        "girlfriend",
+        "wife",
+        "husband",
+        "dating",
+        "relationship",
+        "marriage",
+        "wedding",
+        "fiance",
+        "cheating",
+        "affair",
+        "divorce",
+        "breakup",
+        "engaged"
+    ]
+
     for subreddit in SUBREDDITS:
 
         print(f"수집 중 : r/{subreddit}")
@@ -45,7 +50,6 @@ def fetch_reddit_posts(limit=10):
         url = f"https://www.reddit.com/r/{subreddit}/.rss"
 
         try:
-
             response = requests.get(
                 url,
                 headers=headers,
@@ -68,20 +72,23 @@ def fetch_reddit_posts(limit=10):
 
                 t = title.text.lower()
 
+                # 기본 필터
                 if "rule" in t:
                     continue
 
                 if "karma" in t:
                     continue
 
+                # 🔥 핵심: 연애글만 통과
+                text = (title.text + " " + content.text).lower()
+
+                if not any(word in text for word in RELATIONSHIP_KEYWORDS):
+                    continue
+
                 posts.append({
-
                     "subreddit": subreddit,
-
                     "title": title.text,
-
                     "content": content.text[:1500]
-
                 })
 
                 count += 1
@@ -90,7 +97,6 @@ def fetch_reddit_posts(limit=10):
                     break
 
         except Exception as e:
-
             print(f"실패 : r/{subreddit}")
 
     print(f"\n총 {len(posts)}개 수집 완료")
