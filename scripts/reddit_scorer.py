@@ -9,11 +9,21 @@ def score_post(title, content):
     # ==========================
 
     romance = [
-        "girlfriend","boyfriend",
-        "dating","date",
-        "crush","love",
+        "boyfriend",
+        "girlfriend",
+        "husband",
+        "wife",
+        "dating",
         "relationship",
-        "fiance","proposal"
+        "marriage",
+        "wedding",
+        "fiance",
+        "engaged",
+        "proposal",
+        "cheating",
+        "affair",
+        "divorce",
+        "breakup"
     ]
 
     # ==========================
@@ -96,7 +106,7 @@ def score_post(title, content):
     # 연애 70%
     # ==========================
 
-    score += sum(10 for w in romance if w in text)
+    score += sum(15 for w in romance if w in text)
 
     # 불륜 20%
     score += sum(8 for w in affair if w in text)
@@ -126,11 +136,11 @@ def score_post(title, content):
     # 길이 보정
     length = len(text)
 
-    if 700 <= length <= 2500:
-        score += 10
+    if 800 <= length <= 3000:
+        score += 15
 
-    elif length < 300:
-        score -= 10
+    elif length < 400:
+        score -= 15
 
     return score
 
