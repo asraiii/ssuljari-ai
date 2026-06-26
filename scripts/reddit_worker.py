@@ -1,39 +1,98 @@
 import requests
 import xml.etree.ElementTree as ET
 
-def fetch_reddit_posts(limit=5):
-    url = "https://www.reddit.com/r/AITAH/.rss"
+# =========================
+# 수집할 Reddit
+# =========================
+
+SUBREDDITS = [
+
+    # 연애
+    "relationship_advice",
+    "relationships",
+    "dating",
+    "BreakUps",
+
+    # 불륜
+    "survivinginfidelity",
+
+    # 갈등
+    "AITAH",
+    "AmIOverreacting",
+    "TrueOffMyChest",
+
+    # 직장 (조금만)
+    "work"
+]
+
+
+def fetch_reddit_posts(limit=10):
 
     headers = {
         "User-Agent": "ssuljari-ai"
     }
 
-    response = requests.get(url, headers=headers)
-    root = ET.fromstring(response.text)
-
-    ns = {"atom": "http://www.w3.org/2005/Atom"}
-    entries = root.findall("atom:entry", ns)
+    ns = {
+        "atom": "http://www.w3.org/2005/Atom"
+    }
 
     posts = []
 
-    for entry in entries:
-        title = entry.find("atom:title", ns)
-        content = entry.find("atom:content", ns)
+    for subreddit in SUBREDDITS:
 
-        if title is None or content is None:
-            continue
+        print(f"수집 중 : r/{subreddit}")
 
-        t = title.text.lower()
+        url = f"https://www.reddit.com/r/{subreddit}/.rss"
 
-        if "rule" in t or "karma" in t:
-            continue
+        try:
 
-        posts.append({
-            "title": title.text,
-            "content": content.text[:1500]
-        })
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=10
+            )
 
-        if len(posts) >= limit:
-            break
+            root = ET.fromstring(response.text)
+
+            entries = root.findall("atom:entry", ns)
+
+            count = 0
+
+            for entry in entries:
+
+                title = entry.find("atom:title", ns)
+                content = entry.find("atom:content", ns)
+
+                if title is None or content is None:
+                    continue
+
+                t = title.text.lower()
+
+                if "rule" in t:
+                    continue
+
+                if "karma" in t:
+                    continue
+
+                posts.append({
+
+                    "subreddit": subreddit,
+
+                    "title": title.text,
+
+                    "content": content.text[:1500]
+
+                })
+
+                count += 1
+
+                if count >= limit:
+                    break
+
+        except Exception as e:
+
+            print(f"실패 : r/{subreddit}")
+
+    print(f"\n총 {len(posts)}개 수집 완료")
 
     return posts
