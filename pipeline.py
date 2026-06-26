@@ -23,7 +23,7 @@ def run():
     data = json.loads(result)
 
     story = data["story"]
-    title = data["titles"][0]
+    title = data["title"]
     thumbnail = data["thumbnail"]
     hook = data["hook"]
     hashtags = " ".join(data["hashtags"])
