@@ -19,6 +19,9 @@ def run():
         best_post["content"]
     )
 
+    print("\n===== RAW GEMINI =====")
+    print(result)
+
     # JSON 문자열 → Python 객체
     data = json.loads(result)
 
