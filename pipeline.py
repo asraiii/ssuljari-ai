@@ -22,6 +22,15 @@ def run():
     print("\n===== RAW GEMINI =====")
     print(result)
 
+    result = result.replace("```json", "")
+    result = result.replace("```", "")
+    result = result.strip()
+
+    start = result.find("{")
+    end = result.rfind("}") + 1
+    result = result[start:end]
+
+    
     # JSON 문자열 → Python 객체
     data = json.loads(result)
 
