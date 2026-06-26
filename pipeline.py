@@ -8,7 +8,7 @@ from scripts.gemini_writer import generate_content_pack
 def run():
 
     print("\n[1] Reddit 수집")
-    posts = fetch_reddit_posts(limit=10)
+    posts = fetch_reddit_posts(limit=30)
 
     print("\n[2] TOP1 선택")
     best_post = pick_best_post(posts)
