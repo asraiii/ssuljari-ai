@@ -25,24 +25,6 @@ def fetch_reddit_posts(limit=10):
 
     posts = []
 
-    # 연애 키워드 필터 (핵심)
-    RELATIONSHIP_KEYWORDS = [
-        "boyfriend",
-        "girlfriend",
-        "wife",
-        "husband",
-        "dating",
-        "relationship",
-        "marriage",
-        "wedding",
-        "fiance",
-        "cheating",
-        "affair",
-        "divorce",
-        "breakup",
-        "engaged"
-    ]
-
     for subreddit in SUBREDDITS:
 
         print(f"수집 중 : r/{subreddit}")
@@ -77,12 +59,6 @@ def fetch_reddit_posts(limit=10):
                     continue
 
                 if "karma" in t:
-                    continue
-
-                # 🔥 핵심: 연애글만 통과
-                text = (title.text + " " + content.text).lower()
-
-                if not any(word in text for word in RELATIONSHIP_KEYWORDS):
                     continue
 
                 posts.append({
