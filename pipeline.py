@@ -19,25 +19,37 @@ def run():
         best_post["content"]
     )
 
-    # JSON 문자열 → Python Dictionary
-    content = json.loads(result)
+    # JSON 문자열 → Python 객체
+    data = json.loads(result)
+
+    story = data["story"]
+    title = data["titles"][0]
+    thumbnail = data["thumbnail"]
+    hook = data["hook"]
+    hashtags = " ".join(data["hashtags"])
 
     print("\n===== STORY =====")
-    print(content["story"])
+    print(story)
 
     print("\n===== TITLE =====")
-    print(content["titles"][0])
+    print(title)
 
     print("\n===== THUMBNAIL =====")
-    print(content["thumbnail"])
+    print(thumbnail)
 
     print("\n===== HOOK =====")
-    print(content["hook"])
+    print(hook)
 
     print("\n===== HASHTAGS =====")
-    print(" ".join(content["hashtags"]))
+    print(hashtags)
 
-    return content
+    return {
+        "story": story,
+        "title": title,
+        "thumbnail": thumbnail,
+        "hook": hook,
+        "hashtags": hashtags
+    }
 
 
 if __name__ == "__main__":
