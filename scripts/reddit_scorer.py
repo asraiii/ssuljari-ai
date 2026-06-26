@@ -3,75 +3,148 @@ def score_post(title, content):
 
     score = 0
 
-    # 🔥 1. 핵심 감정 키워드 (강한 가중치)
-    emotional = ["cheat", "divorce", "affair", "cry", "betray", "toxic", "abuse"]
+    # =========================
+    # 채널 핵심 컨셉 (90%)
+    # =========================
 
-    # 🔥 2. 인간 관계 (공감 기반)
-    relation = ["husband", "wife", "girlfriend", "boyfriend", "family", "boss", "coworker"]
+    romance = [
+        "girlfriend",
+        "boyfriend",
+        "wife",
+        "husband",
+        "fiance",
+        "dating",
+        "relationship",
+        "married",
+        "marriage",
+        "wedding",
+        "proposal",
+        "love",
+        "crush",
+        "ex",
+        "ex-wife",
+        "ex-husband",
+        "cheat",
+        "cheating",
+        "affair",
+        "divorce"
+    ]
 
-    # 🔥 3. 갈등 구조 (스토리성)
-    conflict = ["argue", "fight", "accuse", "lied", "secret", "refuse", "stormed"]
+    # =========================
+    # 갈등
+    # =========================
 
-    # 🔥 4. 반전/전개 트리거 (중요)
-    twist = ["but", "however", "later", "then", "found out", "turns out"]
+    conflict = [
+        "argue",
+        "fight",
+        "lied",
+        "secret",
+        "betray",
+        "cry",
+        "toxic",
+        "abuse",
+        "ignored",
+        "blocked",
+        "refused"
+    ]
 
-    # 🔥 5. 클릭 유도 (유튜브 핵심)
-    curiosity = ["aitah", "wibta", "am i wrong", "help", "shocked", "unexpected"]
+    # =========================
+    # 직장 (10%)
+    # =========================
+
+    work = [
+        "boss",
+        "coworker",
+        "manager",
+        "office",
+        "company",
+        "work"
+    ]
+
+    # =========================
+    # 조회수 잘 나오는 구조
+    # =========================
+
+    curiosity = [
+        "aitah",
+        "wibta",
+        "am i wrong",
+        "help"
+    ]
 
     # -------------------------
-    # 기본 AITAH 가중치
+    # 연애는 가장 높은 점수
     # -------------------------
-    if "aitah" in text or "wibta" in text:
-        score += 3
 
-    # -------------------------
-    # 키워드 점수 계산
-    # -------------------------
-    score += sum(2 for w in emotional if w in text)
-    score += sum(2 for w in relation if w in text)
-    score += sum(3 for w in conflict if w in text)
-    score += sum(2 for w in twist if w in text)
+    score += sum(6 for w in romance if w in text)
+
+    # 갈등
+    score += sum(4 for w in conflict if w in text)
+
+    # 직장
+    score += sum(2 for w in work if w in text)
+
+    # AITAH
     score += sum(3 for w in curiosity if w in text)
 
     # -------------------------
-    # 길이 보정 (너무 짧은 글 제외)
+    # 길이 보너스
     # -------------------------
+
     length = len(text)
 
-    if length > 500:
-        score += 2
-    if length > 1500:
+    if length > 700:
         score += 3
 
-    # -------------------------
-    # 강한 감정 폭발 보너스
-    # -------------------------
-    if "divorce" in text and "cheat" in text:
+    if length > 1500:
         score += 5
 
-    if "cry" in text and "betray" in text:
-        score += 4
+    # -------------------------
+    # 조회수 보너스
+    # -------------------------
+
+    if "cheat" in text:
+        score += 10
+
+    if "affair" in text:
+        score += 10
+
+    if "divorce" in text:
+        score += 8
+
+    if "ex" in text:
+        score += 5
+
+    if "wife" in text and "secret" in text:
+        score += 8
+
+    if "husband" in text and "lied" in text:
+        score += 8
 
     return score
 
 
 def pick_best_post(posts):
+
     scored = []
 
     for post in posts:
-        title = post.get("title", "")
-        content = post.get("content", "")
 
-        s = score_post(title, content)
+        score = score_post(
+            post["title"],
+            post["content"]
+        )
 
-        scored.append((s, post))
+        scored.append((score, post))
 
-    # 점수 높은 순 정렬
-    scored.sort(key=lambda x: x[0], reverse=True)
+    scored.sort(
+        key=lambda x: x[0],
+        reverse=True
+    )
 
-    # 디버깅용 상위 3개 출력 (중요)
-    print("\n===== TOP 3 SCORES =====")
-    for score, post in scored[:3]:
-        print(score, "-", post.get("title", "")[:60])
+    print("\n===== TOP POSTS =====")
+
+    for score, post in scored:
+        print(f"{score}점 | {post['title']}")
 
     return scored[0][1]
