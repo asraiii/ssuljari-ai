@@ -1,33 +1,68 @@
 def score_post(title, content):
+
     text = (title + " " + content).lower()
 
     score = 0
 
     # =========================
-    # 채널 핵심 컨셉 (90%)
+    # ❤️ 1. 연애 (70%)
     # =========================
 
-    romance = [
+    dating = [
         "girlfriend",
         "boyfriend",
-        "wife",
-        "husband",
-        "fiance",
         "dating",
         "relationship",
-        "married",
-        "marriage",
-        "wedding",
-        "proposal",
         "love",
         "crush",
+        "kiss",
+        "date",
+        "breakup",
         "ex",
-        "ex-wife",
-        "ex-husband",
+        "ex girlfriend",
+        "ex boyfriend"
+    ]
+
+    # =========================
+    # 💥 2. 바람 / 불륜 (20%)
+    # =========================
+
+    cheating = [
         "cheat",
         "cheating",
         "affair",
+        "mistress",
+        "lover",
+        "secret relationship",
+        "slept with"
+    ]
+
+    # =========================
+    # 💍 3. 결혼 (8%)
+    # =========================
+
+    marriage = [
+        "wife",
+        "husband",
+        "married",
+        "marriage",
+        "wedding",
+        "fiance",
+        "proposal",
         "divorce"
+    ]
+
+    # =========================
+    # 💼 4. 직장 (2%)
+    # =========================
+
+    work = [
+        "boss",
+        "manager",
+        "coworker",
+        "office",
+        "company",
+        "work"
     ]
 
     # =========================
@@ -49,20 +84,7 @@ def score_post(title, content):
     ]
 
     # =========================
-    # 직장 (10%)
-    # =========================
-
-    work = [
-        "boss",
-        "coworker",
-        "manager",
-        "office",
-        "company",
-        "work"
-    ]
-
-    # =========================
-    # 조회수 잘 나오는 구조
+    # Reddit 특징
     # =========================
 
     curiosity = [
@@ -72,54 +94,55 @@ def score_post(title, content):
         "help"
     ]
 
-    # -------------------------
-    # 연애는 가장 높은 점수
-    # -------------------------
+    # =========================
+    # 점수
+    # =========================
 
-    score += sum(6 for w in romance if w in text)
-
-    # 갈등
-    score += sum(4 for w in conflict if w in text)
-
-    # 직장
+    score += sum(8 for w in dating if w in text)
+    score += sum(6 for w in cheating if w in text)
+    score += sum(4 for w in marriage if w in text)
     score += sum(2 for w in work if w in text)
 
-    # AITAH
-    score += sum(3 for w in curiosity if w in text)
+    score += sum(3 for w in conflict if w in text)
+    score += sum(2 for w in curiosity if w in text)
 
-    # -------------------------
-    # 길이 보너스
-    # -------------------------
+    # =========================
+    # 길이
+    # =========================
 
-    length = len(text)
-
-    if length > 700:
+    if len(text) > 700:
         score += 3
 
-    if length > 1500:
+    if len(text) > 1500:
         score += 5
 
-    # -------------------------
+    # =========================
     # 조회수 보너스
-    # -------------------------
+    # =========================
 
-    if "cheat" in text:
+    if "cheating" in text:
         score += 10
 
     if "affair" in text:
         score += 10
 
-    if "divorce" in text:
+    if "breakup" in text:
         score += 8
 
     if "ex" in text:
-        score += 5
-
-    if "wife" in text and "secret" in text:
         score += 8
 
-    if "husband" in text and "lied" in text:
-        score += 8
+    if "girlfriend" in text and "lied" in text:
+        score += 10
+
+    if "boyfriend" in text and "lied" in text:
+        score += 10
+
+    if "wife" in text and "cheating" in text:
+        score += 10
+
+    if "husband" in text and "cheating" in text:
+        score += 10
 
     return score
 
