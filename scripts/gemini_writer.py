@@ -94,6 +94,9 @@ e. 금지
 1.
 2.
 3.
+
+출력은 반드시 위 형식을 정확히 지켜라.
+다른 설명은 절대 하지 마라.
 """
 
     response = model.generate_content(prompt)
