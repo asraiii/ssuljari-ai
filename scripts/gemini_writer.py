@@ -41,6 +41,7 @@ def generate_content_pack(title, content):
 
 - 반드시 줄바꿈으로 작성한다.
 - 한 줄에는 한 문장만 작성한다.
+- 한 문장은 25자 이하를 권장한다.
 - 빈 줄은 넣지 않는다.
 
 ② 제목 생성
@@ -54,6 +55,10 @@ def generate_content_pack(title, content):
 ④ Hook 생성
 
 내부적으로 최소 5개의 Hook을 만든다.
+
+첫 문장을 듣고 바로 끝까지 보고 싶어지는 수준이어야 한다.
+
+질문형보다 상황 제시형을 우선한다.
 
 ⑤ 내부 평가
 
