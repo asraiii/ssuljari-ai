@@ -7,6 +7,27 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 
+def extract_json(text):
+    """🔥 JSON만 안전하게 추출"""
+
+    # 1. 코드블록 제거
+    text = text.replace("```json", "").replace("```", "")
+
+    # 2. 가장 큰 JSON만 잡기 (greedy 방지)
+    matches = re.findall(r"\{[\s\S]*?\}", text)
+
+    if not matches:
+        return None
+
+    # 가장 큰 JSON 선택
+    json_str = max(matches, key=len)
+
+    try:
+        return json.loads(json_str)
+    except:
+        return None
+
+
 def generate_content_pack(title, content):
 
     prompt = f"""
@@ -288,66 +309,35 @@ JSON 이외의 모든 출력은 금지한다.
     response = model.generate_content(prompt)
     text = response.text.strip()
 
-    import re
-    import json
+    data = extract_json(text)
 
-    # JSON 추출
-    match = re.search(r"\{.*\}", text, re.DOTALL)
+    # 🔥 핵심: 절대 빈 dict 반환 금지
+    if not data:
+        print("❌ JSON 파싱 실패")
+        return None
 
-    if not match:
-        return {
-            "story": "",
-            "title": "",
-            "thumbnail": "",
-            "hook": "",
-            "hashtags": []
-        }
+    required = ["story", "title", "thumbnail", "hook"]
 
-    try:
-        return json.loads(match.group())
-    except:
-        # 🔥 실패해도 절대 None 주면 안됨
-        return {
-            "story": "",
-            "title": "",
-            "thumbnail": "",
-            "hook": "",
-            "hashtags": []
-        }
+    if not all(k in data for k in required):
+        print("❌ 키 부족:", data)
+        return None
+
+    return data
+
 
 def select_best_result(results):
 
     prompt = f"""
-너는 유튜브 쇼츠 전문가다.
-
-아래는 같은 Reddit 글에서 만든 쇼츠 후보 5개이다.
-
-조회수(CTR)가 가장 잘 나올 하나만 선택해라.
-
-후보:
+아래 쇼츠 중 가장 CTR 높은 1개만 선택:
 
 {json.dumps(results, ensure_ascii=False, indent=2)}
 
-JSON 하나만 출력해라.
+JSON만 출력
 """
 
     response = model.generate_content(prompt)
+    text = response.text.strip()
 
-    text = response.text
-    text = text.replace("```json", "")
-    text = text.replace("```", "")
-    text = text.strip()
+    data = extract_json(text)
 
-
-    json_match = re.search(r"\{.*\}", text, re.DOTALL)
-
-    try:
-        return json.loads(json_match.group())
-    except:
-        return {
-            "story": "",
-            "title": "",
-            "thumbnail": "",
-            "hook": "",
-            "hashtags": []
-        }
+    return data if data else None
