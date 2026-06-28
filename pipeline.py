@@ -11,12 +11,31 @@ def run():
     posts = fetch_reddit_posts(limit=30)
 
     print("\n[2] TOP1 선택")
-    best_post = pick_best_post(posts)
+    best_posts = pick_best_post(posts)
+
+    print("\n===== TOP5 후보 =====")
+
+    for i, post in enumerate(best_posts, 1):
+        print(f"\n[{i}] {post['title']}")
+
+    combined_content = ""
+
+    for i, post in enumerate(best_posts, 1):
+        combined_content += f"""
+===== 후보 {i} =====
+제목:
+{post['title']}
+
+내용:
+{post['content']}
+
+"""
 
     print("\n[3] Gemini 생성")
+
     result = generate_content_pack(
-        best_post["title"],
-        best_post["content"]
+        "TOP5 Reddit 후보",
+        combined_content
     )
 
     print("\n===== RAW GEMINI =====")
