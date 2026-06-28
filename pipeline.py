@@ -22,30 +22,26 @@ def run():
 
         print(f"\n===== Gemini 생성 {i}/5 =====")
 
-        result = generate_content_pack(
+        data = generate_content_pack(
             post["title"],
             post["content"]
         )
 
-        print(result)
-
-        result = result.replace("```json", "")
-        result = result.replace("```", "")
-        result = result.strip()
-
-        start = result.find("{")
-        end = result.rfind("}") + 1
-
-        result = result[start:end]
-
-        data = json.loads(result)
+        # 🔥 여기 중요: gemini_writer가 이미 dict 반환
+        if not data:
+            continue
 
         data["reddit_title"] = post["title"]
         data["reddit_content"] = post["content"]
 
+        print(data)
+
         results.append(data)
 
-    # 아직은 1등을 임시로 첫 번째 결과로 사용
+    if not results:
+        print("생성 실패")
+        return None
+
     best_result = results[0]
 
     mark_post_as_used(
