@@ -124,7 +124,10 @@ def pick_best_post(posts):
     for score, post in scored[:10]:
         print(f"[{score}] ({post['subreddit']}) {post['title']}")
 
-    # =========================
-    # TOP5 반환
-    # =========================    
-    return [post for score, post in scored[:5]]
+    print("\n===== TOP10 =====")
+
+    for score, post in scored[:10]:
+        print(f"[{score}] ({post['subreddit']}) {post['title']}")
+
+    # 가장 점수가 높은 글 1개 반환
+    return scored[0][1]
