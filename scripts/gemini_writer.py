@@ -8,25 +8,25 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def extract_json(text):
-    """🔥 JSON만 안전하게 추출"""
+    """🔥 JSON만 안전하게 추출 (안정 버전)"""
 
     # 1. 코드블록 제거
     text = text.replace("```json", "").replace("```", "")
 
-    # 2. 가장 큰 JSON만 잡기 (greedy 방지)
-    matches = re.findall(r"\{[\s\S]*?\}", text)
+    # 2. JSON 시작/끝 위치 직접 찾기
+    start = text.find("{")
+    end = text.rfind("}")
 
-    if not matches:
+    # JSON이 아예 없으면 실패
+    if start == -1 or end == -1:
         return None
 
-    # 가장 큰 JSON 선택
-    json_str = max(matches, key=len)
+    json_str = text[start:end+1]
 
     try:
         return json.loads(json_str)
     except:
         return None
-
 
 def generate_content_pack(title, content):
 
