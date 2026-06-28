@@ -1,4 +1,6 @@
 import os
+import json
+import re
 import google.generativeai as genai
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
@@ -282,5 +284,49 @@ hook은 반드시 story의 첫 번째 문장과 동일하다.
 JSON 이외의 모든 출력은 금지한다.
 
 """
+
     response = model.generate_content(prompt)
-    return response.text
+
+    text = response.text
+    text = text.replace("```json", "")
+    text = text.replace("```", "")
+    text = text.strip()
+
+    return text
+
+def select_best_result(results):
+
+    prompt = f"""
+너는 유튜브 쇼츠 전문가다.
+
+아래는 같은 Reddit 글에서 만든 쇼츠 후보 5개이다.
+
+조회수(CTR)가 가장 잘 나올 하나만 선택해라.
+
+후보:
+
+{json.dumps(results, ensure_ascii=False, indent=2)}
+
+JSON 하나만 출력해라.
+"""
+
+    response = model.generate_content(prompt)
+
+    text = response.text
+    text = text.replace("```json", "")
+    text = text.replace("```", "")
+    text = text.strip()
+
+
+    json_match = re.search(r"\{.*\}", text, re.DOTALL)
+
+    try:
+        return json.loads(json_match.group())
+    except:
+        return {
+            "story": "",
+            "title": "",
+            "thumbnail": "",
+            "hook": "",
+            "hashtags": []
+        }
