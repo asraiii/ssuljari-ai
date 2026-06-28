@@ -205,7 +205,7 @@ def generate_content_pack(title, content):
 
 절대로 코드블록을 사용하지 마라.
 
-절대로 ```json 을 출력하지 마라.
+절대로 json 코드블록을 출력하지 마라.
 
 절대로 JSON 앞뒤에 아무 문자도 넣지 마라.
 
@@ -238,3 +238,7 @@ story 안에서 줄바꿈은 \n 으로 표현한다.
 hook은 반드시 story의 첫 번째 문장과 동일하다.
 
 JSON 이외의 모든 출력은 금지한다.
+
+"""
+    response = model.generate_content(prompt)
+    return response.text
