@@ -13,17 +13,14 @@ def run():
     print("\n[1] Reddit 수집")
     posts = fetch_reddit_posts(limit=30)
 
-    print("\n[2] TOP5 선택")
-    best_posts = pick_best_post(posts)
+    print("\n[2] TOP1 선택")
+    post = pick_best_post(posts)
 
-    if not best_posts:
+    if not post:
         print("❌ 후보 없음")
         return None
 
-    # 🔥 핵심: TOP1만 사용
-    post = best_posts[0]
-
-    print("\n===== Gemini 생성 (TOP1 only) =====")
+    print("\n===== Gemini 생성 (ONLY 1 CALL) =====")
 
     data = generate_content_pack(
         post["title"],
