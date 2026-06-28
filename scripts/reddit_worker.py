@@ -139,6 +139,11 @@ def mark_post_as_used(post):
 
     used_posts = load_used_posts()
 
-    used_posts.add(post["url"])
+    # 🔥 안전처리 (url 없으면 그냥 종료)
+    url = post.get("url")
+    if not url:
+        return
+
+    used_posts.add(url)
 
     save_used_posts(used_posts)
