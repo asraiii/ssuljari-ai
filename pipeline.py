@@ -16,65 +16,38 @@ def run():
     print("\n[2] TOP5 선택")
     best_posts = pick_best_post(posts)
 
-    results = []
-
-    for i, post in enumerate(best_posts, start=1):
-
-        # 안전장치
-        if not isinstance(post, dict):
-            print("❌ post 스킵:", post)
-            continue
-
-        if "title" not in post or "content" not in post:
-            print("❌ 키 없음:", post)
-            continue
-
-        print(f"\n===== Gemini 생성 {i}/5 =====")
-
-        data = generate_content_pack(
-            post["title"],
-            post["content"]
-        )
-
-        # Gemini 실패 방어
-        if not isinstance(data, dict):
-            print("❌ Gemini 실패")
-            continue
-
-        required_keys = ["story", "title", "thumbnail", "hook"]
-
-        if not all(k in data for k in required_keys):
-            print("❌ JSON 구조 실패")
-            continue
-
-        # 🔥 중요: URL 저장 (이거 없어서 터졌던 거)
-        data["reddit_title"] = post["title"]
-        data["reddit_content"] = post["content"]
-        data["reddit_url"] = post["url"]
-
-        print(data)
-
-        results.append(data)
-
-    if not results:
-        print("❌ 생성 실패")
+    if not best_posts:
+        print("❌ 후보 없음")
         return None
 
-    def score(x):
-        return (
-            len(x.get("story", "")) * 2 +
-            len(x.get("title", "")) +
-            len(x.get("thumbnail", ""))
-        )
+    # 🔥 핵심: TOP1만 사용
+    post = best_posts[0]
 
-    best_result = max(results, key=score)
+    print("\n===== Gemini 생성 (TOP1 only) =====")
 
-    # 🔥 여기 수정 핵심
-    mark_post_as_used({
-        "url": best_result["reddit_url"]
-    })
+    data = generate_content_pack(
+        post["title"],
+        post["content"]
+    )
 
-    return best_result
+    if not isinstance(data, dict):
+        print("❌ Gemini 실패")
+        return None
+
+    required_keys = ["story", "title", "thumbnail", "hook"]
+
+    if not all(k in data for k in required_keys):
+        print("❌ JSON 구조 실패:", data)
+        return None
+
+    data["reddit_title"] = post["title"]
+    data["reddit_content"] = post["content"]
+
+    print(data)
+
+    mark_post_as_used(post)
+
+    return data
 
 
 if __name__ == "__main__":
