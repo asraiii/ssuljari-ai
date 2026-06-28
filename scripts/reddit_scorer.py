@@ -4,9 +4,6 @@ def score_post(title, content):
 
     score = 0
 
-    # =========================
-    # 1. 감정 폭발 (핵심)
-    # =========================
     emotion = [
         "cry", "crying",
         "shocked",
@@ -17,9 +14,6 @@ def score_post(title, content):
         "trauma"
     ]
 
-    # =========================
-    # 2. 반전 / 폭로
-    # =========================
     twist = [
         "found out",
         "turns out",
@@ -32,9 +26,6 @@ def score_post(title, content):
         "affair"
     ]
 
-    # =========================
-    # 3. 갈등 / 싸움
-    # =========================
     conflict = [
         "fight",
         "argument",
@@ -45,9 +36,6 @@ def score_post(title, content):
         "yelled"
     ]
 
-    # =========================
-    # 4. 관계 키워드 (보너스만)
-    # =========================
     relationship = [
         "boyfriend",
         "girlfriend",
@@ -62,32 +50,17 @@ def score_post(title, content):
         "affair"
     ]
 
-    # =========================
-    # 감정 점수
-    # =========================
     score += sum(4 for w in emotion if w in text)
-
-    # 반전 점수
     score += sum(5 for w in twist if w in text)
-
-    # 갈등 점수
     score += sum(4 for w in conflict if w in text)
-
-    # 관계 키워드 (보너스)
     score += sum(2 for w in relationship if w in text)
 
-    # =========================
-    # AITAH / 판단형 글
-    # =========================
     if "aitah" in text:
         score += 10
 
     if "wibta" in text:
         score += 8
 
-    # =========================
-    # 길이 보정 (중요)
-    # =========================
     length = len(text)
 
     if 800 <= length <= 3000:
@@ -95,9 +68,6 @@ def score_post(title, content):
     elif length < 400:
         score -= 15
 
-    # =========================
-    # 강한 자극 글 추가 보너스
-    # =========================
     if "divorce" in text:
         score += 5
     if "cheating" in text:
@@ -114,6 +84,14 @@ def pick_best_post(posts):
 
     for post in posts:
 
+        # 🔥 안전장치 1
+        if not isinstance(post, dict):
+            continue
+
+        # 🔥 안전장치 2
+        if "title" not in post or "content" not in post:
+            continue
+
         s = score_post(post["title"], post["content"])
         scored.append((s, post))
 
@@ -122,12 +100,11 @@ def pick_best_post(posts):
     print("\n===== TOP10 =====")
 
     for score, post in scored[:10]:
-        print(f"[{score}] ({post['subreddit']}) {post['title']}")
 
-    print("\n===== TOP10 =====")
+        # 🔥 안전 출력
+        subreddit = post.get("subreddit", "unknown")
 
-    for score, post in scored[:10]:
-        print(f"[{score}] ({post['subreddit']}) {post['title']}")
+        print(f"[{score}] ({subreddit}) {post['title']}")
 
-    # 가장 점수가 높은 글 1개 반환
-    return scored[0][1]
+    # 가장 점수 높은 1개 반환
+    return [p for _, p in scored[:5]]  # TOP5 반환
