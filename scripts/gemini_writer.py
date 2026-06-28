@@ -286,13 +286,21 @@ JSON 이외의 모든 출력은 금지한다.
 """
 
     response = model.generate_content(prompt)
+    text = response.text.strip()
 
-    text = response.text
-    text = text.replace("```json", "")
-    text = text.replace("```", "")
-    text = text.strip()
+    import re
+    import json
 
-    return text
+    # JSON만 추출
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+
+    if not match:
+        return None
+
+    try:
+        return json.loads(match.group())
+    except:
+        return None
 
 def select_best_result(results):
 
