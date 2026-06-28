@@ -124,4 +124,7 @@ def pick_best_post(posts):
     for score, post in scored[:10]:
         print(f"[{score}] ({post['subreddit']}) {post['title']}")
 
-    return scored[0][1]
+    # =========================
+    # TOP5 반환
+    # =========================    
+    return [post for score, post in scored[:5]]
