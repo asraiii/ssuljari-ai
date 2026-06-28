@@ -196,71 +196,45 @@ def generate_content_pack(title, content):
 영상 연출 금지
 
 ========================
-출력
+출력 형식
 ========================
 
-반드시 JSON 하나만 출력한다.
+응답은 반드시 아래 JSON 객체 하나만 출력한다.
 
-절대로 ```json 코드블록을 사용하지 마라.
+절대로 설명을 추가하지 마라.
 
-반드시 순수 JSON만 출력한다.
+절대로 코드블록을 사용하지 마라.
+
+절대로 ```json 을 출력하지 마라.
+
+절대로 JSON 앞뒤에 아무 문자도 넣지 마라.
+
+반드시 아래 형식을 그대로 따른다.
 
 {{
-    "story":"...",
-    "title":"...",
-    "thumbnail":"...",
-    "hook":"...",
-    "hashtags":[
-        "#썰",
-        "#연애",
-        "#실화",
-        "#쇼츠",
-        "#썰자리"
-    ]
+  "story":"첫줄\n둘째줄\n셋째줄",
+  "title":"...",
+  "thumbnail":"...",
+  "hook":"...",
+  "hashtags":[
+    "#썰",
+    "#연애",
+    "#실화",
+    "#쇼츠",
+    "#썰자리"
+  ]
 }}
 
 규칙
 
 story는 문자열이다.
 
-story 안에는 줄바꿈(\n)을 포함한다.
+story 안에서 줄바꿈은 \n 으로 표현한다.
 
-story의 첫 문장은 반드시 가장 자극적인 문장이어야 한다.
+실제 줄바꿈 문자를 넣지 마라.
 
-한 줄은 반드시 한 문장이다.
+반드시 \\n 문자열만 사용한다.
 
-title은 문자열 하나이다.
+hook은 반드시 story의 첫 번째 문장과 동일하다.
 
-thumbnail은 문자열 하나이다.
-
-hook은 문자열 하나이다.
-
-hashtags는 문자열 배열이다.
-
-내부적으로 여러 후보를 생성하고 비교하더라도
-
-JSON에는 최종 결과 하나만 출력한다.
-
-JSON 형식이 아니면 실패다.
-
-다른 문장은 절대 출력하지 마라.
-"""
-
-    response = model.generate_content(prompt)
-
-    text = response.text.strip()
-
-    # ```json 제거
-    if text.startswith("```"):
-        text = text.replace("```json", "")
-        text = text.replace("```", "")
-        text = text.strip()
-
-    # JSON 부분만 추출
-    start = text.find("{")
-    end = text.rfind("}") + 1
-
-    if start != -1 and end > start:
-        text = text[start:end]
-
-    return text
+JSON 이외의 모든 출력은 금지한다.
