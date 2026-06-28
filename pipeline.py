@@ -1,6 +1,9 @@
 import json
 
-from scripts.reddit_worker import fetch_reddit_posts
+from scripts.reddit_worker import (
+    fetch_reddit_posts,
+    mark_post_as_used
+)
 from scripts.reddit_scorer import pick_best_post
 from scripts.gemini_writer import generate_content_pack
 
@@ -10,32 +13,17 @@ def run():
     print("\n[1] Reddit 수집")
     posts = fetch_reddit_posts(limit=30)
 
+    if not posts:
+        print("사용 가능한 Reddit 글이 없습니다.")
+        return None
+
     print("\n[2] TOP1 선택")
-    best_posts = pick_best_post(posts)
-
-    print("\n===== TOP5 후보 =====")
-
-    for i, post in enumerate(best_posts, 1):
-        print(f"\n[{i}] {post['title']}")
-
-    combined_content = ""
-
-    for i, post in enumerate(best_posts, 1):
-        combined_content += f"""
-===== 후보 {i} =====
-제목:
-{post['title']}
-
-내용:
-{post['content']}
-
-"""
+    best_post = pick_best_post(posts)
 
     print("\n[3] Gemini 생성")
-
     result = generate_content_pack(
-        "TOP5 Reddit 후보",
-        combined_content
+        best_post["title"],
+        best_post["content"]
     )
 
     print("\n===== RAW GEMINI =====")
@@ -49,8 +37,6 @@ def run():
     end = result.rfind("}") + 1
     result = result[start:end]
 
-    
-    # JSON 문자열 → Python 객체
     data = json.loads(result)
 
     story = data["story"]
@@ -73,6 +59,11 @@ def run():
 
     print("\n===== HASHTAGS =====")
     print(hashtags)
+
+    # ✅ 생성 성공한 글만 사용 완료 처리
+    mark_post_as_used(best_post)
+
+    print("\n✅ 사용한 Reddit 글을 used_posts.json에 저장했습니다.")
 
     return {
         "story": story,
