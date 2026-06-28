@@ -127,8 +127,8 @@ def fetch_reddit_posts(limit=30):
                 if count >= limit:
                     break
 
-        except Exception:
-            print(f"실패 : r/{subreddit}")
+        except Exception as e:
+            print(f"실패 : r/{subreddit} -> {e}")
 
     print(f"\n총 {len(posts)}개 수집 완료")
 
