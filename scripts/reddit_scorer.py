@@ -84,11 +84,9 @@ def pick_best_post(posts):
 
     for post in posts:
 
-        # 🔥 안전장치 1
         if not isinstance(post, dict):
             continue
 
-        # 🔥 안전장치 2
         if "title" not in post or "content" not in post:
             continue
 
@@ -100,11 +98,11 @@ def pick_best_post(posts):
     print("\n===== TOP10 =====")
 
     for score, post in scored[:10]:
-
-        # 🔥 안전 출력
         subreddit = post.get("subreddit", "unknown")
-
         print(f"[{score}] ({subreddit}) {post['title']}")
 
-    # 가장 점수 높은 1개 반환
-    return [p for _, p in scored[:5]]  # TOP5 반환
+    # 🔥 핵심 수정
+    if not scored:
+        return None
+
+    return scored[0][1]   # TOP1만 반환
