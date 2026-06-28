@@ -205,7 +205,7 @@ def generate_content_pack(title, content):
 
 반드시 순수 JSON만 출력한다.
 
-{
+{{
     "story":"...",
     "title":"...",
     "thumbnail":"...",
@@ -217,7 +217,7 @@ def generate_content_pack(title, content):
         "#쇼츠",
         "#썰자리"
     ]
-}
+}}
 
 규칙
 
