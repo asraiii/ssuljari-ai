@@ -247,4 +247,20 @@ JSON 형식이 아니면 실패다.
 """
 
     response = model.generate_content(prompt)
-    return response.text
+
+    text = response.text.strip()
+
+    # ```json 제거
+    if text.startswith("```"):
+        text = text.replace("```json", "")
+        text = text.replace("```", "")
+        text = text.strip()
+
+    # JSON 부분만 추출
+    start = text.find("{")
+    end = text.rfind("}") + 1
+
+    if start != -1 and end > start:
+        text = text[start:end]
+
+    return text
