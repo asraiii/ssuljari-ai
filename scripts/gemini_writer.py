@@ -291,16 +291,29 @@ JSON 이외의 모든 출력은 금지한다.
     import re
     import json
 
-    # JSON만 추출
+    # JSON 추출
     match = re.search(r"\{.*\}", text, re.DOTALL)
 
     if not match:
-        return None
+        return {
+            "story": "",
+            "title": "",
+            "thumbnail": "",
+            "hook": "",
+            "hashtags": []
+        }
 
     try:
         return json.loads(match.group())
     except:
-        return None
+        # 🔥 실패해도 절대 None 주면 안됨
+        return {
+            "story": "",
+            "title": "",
+            "thumbnail": "",
+            "hook": "",
+            "hashtags": []
+        }
 
 def select_best_result(results):
 
