@@ -420,13 +420,53 @@ JSON 이외의 모든 출력은 금지한다.
                 "hook",
                 "bg_video",
                 "bgm",
-                "emotion"
+                "emotion",
+                "hashtags"
             ]
 
             if not all(k in data for k in required):
                 print(f"❌ 키 부족 ({attempt+1}/3)")
                 time.sleep(2)
                 continue
+
+            data["bg_video"] = data["bg_video"].strip().lower()
+            data["bgm"] = data["bgm"].strip().lower()
+            data["emotion"] = data["emotion"].strip().lower()
+
+            valid_bg = [
+                "subway",
+                "minecraft",
+                "rain",
+                "cafe",
+                "night",
+                "office",
+                "park"
+            ]
+
+            valid_bgm = [
+                "sad",
+                "tense",
+                "happy",
+                "calm"
+            ]
+
+            valid_emotion = [
+                "sad",
+                "shock",
+                "anger",
+                "happy",
+                "regret",
+                "revenge"
+            ]
+
+            if data["bg_video"] not in valid_bg:
+                data["bg_video"] = "subway"
+
+            if data["bgm"] not in valid_bgm:
+                data["bgm"] = "calm"
+
+            if data["emotion"] not in valid_emotion:
+                data["emotion"] = "sad"
 
             return data
 
