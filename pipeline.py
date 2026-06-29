@@ -17,23 +17,17 @@ from scripts.gemini_writer import (
 
 def run():
 
-    print("\n[1] Reddit 수집")
+    print("\n[1] TEST MODE (Reddit skip)")
 
-    posts = fetch_reddit_posts(limit=30)
+    # ==========================
+    # 🔥 Reddit 대신 테스트 데이터
+    # ==========================
+    post = {
+        "title": "남친이 내 통장을 몰래 봤다",
+        "content": "I found out my boyfriend secretly checked my bank account and lied about it."
+    }
 
-    if not posts:
-        print("❌ Reddit 글을 가져오지 못했습니다.")
-        return None
-
-    print("\n[2] TOP1 선택")
-
-    post = pick_best_post(posts)
-
-    if not post:
-        print("❌ 후보 없음")
-        return None
-
-    print("\n[3] Gemini 생성")
+    print("\n[2] Gemini 생성")
 
     data = generate_content_pack(
         post["title"],
@@ -59,32 +53,11 @@ def run():
         print("❌ JSON 구조 실패")
         return None
 
-    # Reddit 원문 저장
-    data["reddit_title"] = post["title"]
-    data["reddit_content"] = post["content"]
-
-    # output.json 저장
-    with open(
-        "output.json",
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            data,
-            f,
-            ensure_ascii=False,
-            indent=2
-        )
-
-    print("\n✅ output.json 저장 완료")
-
-    # 사용 완료 표시
-    mark_post_as_used(post)
-
-    print("\n🎉 전체 완료")
+    print("\n[3] VIDEO BUILDER 실행")
 
     build_video(data)
+
+    print("\n🎉 TEST COMPLETE")
 
     return data
 
