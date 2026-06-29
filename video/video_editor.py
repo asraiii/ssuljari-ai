@@ -1,4 +1,5 @@
 import subprocess
+import json
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
 
@@ -69,9 +70,26 @@ def build_final_video(data):
         output
     ]
 
+    
     subprocess.run(cmd, check=True)
 
     print("\n🎉 FINAL VIDEO 생성 완료!")
     print("👉", output)
 
     return output
+    
+def get_audio_duration(path):
+
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    data = json.loads(result.stdout)
+
+    return float(data["format"]["duration"])
