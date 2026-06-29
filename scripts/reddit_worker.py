@@ -75,9 +75,20 @@ def fetch_reddit_posts(limit=30):
         try:
             response = requests.get(
                 url,
-                headers=headers,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                },
                 timeout=10
             )
+            
+if not response.text or "<feed" not in response.text:
+    print(f"실패 : r/{subreddit} (invalid rss)")
+    continue
+
+# Reddit rate limit 대응
+if response.status_code != 200:
+    print(f"실패 : r/{subreddit} ({response.status_code})")
+    continue
         
             # 🔥 핵심: 응답 검증
             if response.status_code != 200:
@@ -135,6 +146,9 @@ def fetch_reddit_posts(limit=30):
                 })
 
                 count += 1
+
+                import time
+                time.sleep(1.5)
 
                 if count >= limit:
                     break
