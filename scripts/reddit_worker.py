@@ -53,11 +53,18 @@ def fetch_subreddit(subreddit, limit=30):
     url = f"https://www.reddit.com/r/{subreddit}/top.json?limit={limit}"
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (ssuljari-ai bot)"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/137.0 Safari/537.36"
     }
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
+
+        print("=" * 50)
+        print(url)
+        print(response.status_code)
+        print(response.headers.get("content-type"))
+        print(response.text[:300])
+        print("=" * 50)
 
         # 🔥 429 / 실패 방지
         if response.status_code != 200:
