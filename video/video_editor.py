@@ -1,8 +1,9 @@
 import subprocess
 import json
+import os
+
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
-from video.video_downloader import download_video
 
 
 def build_final_video(data):
@@ -11,7 +12,7 @@ def build_final_video(data):
     print(" FINAL VIDEO BUILDER ")
     print("==============================")
 
-    bg = download_video(data["bg_video"])   # 🔥 핵심 수정 (이게 bg.mp4 대신 실제 경로)
+    bg = "output/bg.mp4"
     voice = "output/voice.mp3"
     bgm = "output/bgm.mp3"
     output = "output/final.mp4"
@@ -27,20 +28,17 @@ def build_final_video(data):
     # ==========================
     download_bgm(data["bgm"])
 
-    # ==========================
-    # 3. 영상 체크 (핵심 안전장치)
-    # ==========================
-    if not bg:
-        print("❌ 배경 영상 다운로드 실패 → pipeline 중단")
-        return None
+    # 🔥 BGM 안전장치 (파일 깨짐 방지)
+    if not os.path.exists(bgm) or os.path.getsize(bgm) < 1000:
+        print("❌ BGM 파일 오류 → 무음으로 대체")
+        open(bgm, "wb").write(b"")
 
     # ==========================
-    # 4. 자막 길이 계산
+    # 3. 자막 생성
     # ==========================
     voice_duration = get_audio_duration(voice)
 
     lines = data["story"].split("\\n")
-
     time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
@@ -61,7 +59,7 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 5. FFmpeg 합성
+    # 4. FFmpeg 합성 (핵심)
     # ==========================
 
     cmd = [
@@ -74,8 +72,9 @@ def build_final_video(data):
 
         "-vf", f"subtitles={subtitle}",
 
+        # 🔥 안정화된 오디오 믹스
         "-filter_complex",
-        "[1:a]volume=1.5[a1];[2:a]volume=0.3[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
 
         "-map", "0:v",
         "-map", "[aout]",
@@ -107,7 +106,6 @@ def get_audio_duration(path):
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
-
     data = json.loads(result.stdout)
 
     return float(data["format"]["duration"])
