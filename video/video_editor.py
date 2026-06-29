@@ -29,18 +29,26 @@ def build_final_video(data):
     # ==========================
     # 3. 자막 생성
     # ==========================
+    voice_duration = get_audio_duration("output/voice.mp3")
+
     lines = data["story"].split("\\n")
+
+    time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
 
+        current_time = 0
+
         for i, line in enumerate(lines, start=1):
 
-            start = i * 3
-            end = start + 3
+            start = current_time
+            end = current_time + time_per_line
 
             f.write(f"{i}\n")
-            f.write(f"00:00:{start:02},000 --> 00:00:{end:02},000\n")
+            f.write(f"00:00:{int(start):02},000 --> 00:00:{int(end):02},000\n")
             f.write(line + "\n\n")
+
+            current_time = end
 
     print("✅ 자막 생성 완료")
 
@@ -63,7 +71,7 @@ def build_final_video(data):
 
         "-map", "0:v",
         "-map", "[aout]",
-
+        "-t", str(voice_duration),
         "-c:v", "libx264",
         "-c:a", "aac",
 
