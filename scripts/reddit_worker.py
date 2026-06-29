@@ -73,17 +73,29 @@ def fetch_reddit_posts(limit=30):
         url = f"https://www.reddit.com/r/{subreddit}/.rss"
 
         try:
-
             response = requests.get(
                 url,
                 headers=headers,
                 timeout=10
             )
+        
+            # 🔥 핵심: 응답 검증
+            if response.status_code != 200:
+                print(f"실패 : r/{subreddit} (status {response.status_code})")
+                continue
 
-            root = ET.fromstring(response.text)
+            if not response.text or len(response.text.strip()) < 50:
+                print(f"실패 : r/{subreddit} (empty response)")
+                continue
+
+            try:
+                root = ET.fromstring(response.text)
+            except Exception as e:
+                print(f"실패 : r/{subreddit} -> {e}")
+                continue
 
             entries = root.findall("atom:entry", ns)
-
+        
             count = 0
 
             for entry in entries:
@@ -139,8 +151,11 @@ def mark_post_as_used(post):
 
     used_posts = load_used_posts()
 
-    # 🔥 안전처리 (url 없으면 그냥 종료)
+    if not isinstance(post, dict):
+        return
+
     url = post.get("url")
+
     if not url:
         return
 
