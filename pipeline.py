@@ -1,4 +1,5 @@
 import json
+from video.video_builder import build_video
 
 from scripts.reddit_worker import (
     fetch_reddit_posts,
@@ -47,7 +48,11 @@ def run():
         "story",
         "title",
         "thumbnail",
-        "hook"
+        "hook",
+        "bg_video",
+        "bgm",
+        "emotion",
+        "hashtags"
     ]
 
     if not all(k in data for k in required_keys):
@@ -78,6 +83,8 @@ def run():
     mark_post_as_used(post)
 
     print("\n🎉 전체 완료")
+
+    build_video(data)
 
     return data
 
