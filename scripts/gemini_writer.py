@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 import google.generativeai as genai
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
@@ -306,23 +307,47 @@ JSON 이외의 모든 출력은 금지한다.
 
 """
 
-    response = model.generate_content(prompt)
-    text = response.text.strip()
+    # ==========================
+    # Gemini Retry
+    # ==========================
 
-    data = extract_json(text)
+    for attempt in range(3):
 
-    # 🔥 핵심: 절대 빈 dict 반환 금지
-    if not data:
-        print("❌ JSON 파싱 실패")
-        return None
+        try:
 
-    required = ["story", "title", "thumbnail", "hook"]
+            response = model.generate_content(prompt)
 
-    if not all(k in data for k in required):
-        print("❌ 키 부족:", data)
-        return None
+            text = response.text.strip()
 
-    return data
+            data = extract_json(text)
+
+            if not data:
+                print(f"❌ JSON 파싱 실패 ({attempt+1}/3)")
+                time.sleep(2)
+                continue
+
+            required = [
+                "story",
+                "title",
+                "thumbnail",
+                "hook"
+            ]
+
+            if not all(k in data for k in required):
+                print(f"❌ 키 부족 ({attempt+1}/3)")
+                time.sleep(2)
+                continue
+
+            return data
+
+        except Exception as e:
+
+            print(f"Gemini 오류 ({attempt+1}/3) : {e}")
+            time.sleep(2)
+
+    print("❌ Gemini 최종 실패")
+
+    return None
 
 
 def select_best_result(results):
