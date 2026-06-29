@@ -1,5 +1,4 @@
 import json
-from video.video_builder import build_video
 
 from scripts.reddit_worker import (
     fetch_reddit_posts,
@@ -13,6 +12,9 @@ from scripts.reddit_scorer import (
 from scripts.gemini_writer import (
     generate_content_pack
 )
+
+# 🔥 추가된 부분 (이거 꼭 필요)
+from video.video_editor import build_final_video
 
 
 def run():
@@ -55,7 +57,8 @@ def run():
 
     print("\n[3] VIDEO BUILDER 실행")
 
-    build_video(data)
+    # 🔥 여기 핵심 변경
+    build_final_video(data)
 
     print("\n🎉 TEST COMPLETE")
 
