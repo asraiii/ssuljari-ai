@@ -27,10 +27,13 @@ def build_final_video(data):
     download_bgm(data["bgm"])
 
     # ==========================
-    # 3. 자막 생성
+    # 3. 음성 길이 계산
     # ==========================
-    voice_duration = get_audio_duration("output/voice.mp3")
+    voice_duration = get_audio_duration(voice)
 
+    # ==========================
+    # 4. 자막 생성 (음성 기준)
+    # ==========================
     lines = data["story"].split("\\n")
 
     time_per_line = voice_duration / len(lines)
@@ -41,11 +44,11 @@ def build_final_video(data):
 
         for i, line in enumerate(lines, start=1):
 
-            start = current_time
-            end = current_time + time_per_line
+            start = int(current_time)
+            end = int(current_time + time_per_line)
 
             f.write(f"{i}\n")
-            f.write(f"00:00:{int(start):02},000 --> 00:00:{int(end):02},000\n")
+            f.write(f"00:00:{start:02},000 --> 00:00:{end:02},000\n")
             f.write(line + "\n\n")
 
             current_time = end
@@ -53,7 +56,7 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 4. FFmpeg 합성 (핵심)
+    # 5. FFmpeg 합성
     # ==========================
 
     cmd = [
@@ -64,28 +67,30 @@ def build_final_video(data):
         "-i", voice,
         "-i", bgm,
 
-        "-vf", f"subtitles={subtitle}",
+        "-vf", "subtitles=output/subtitle.srt",
 
         "-filter_complex",
         "[1:a]volume=1.5[a1];[2:a]volume=0.3[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
 
         "-map", "0:v",
         "-map", "[aout]",
+
         "-t", str(voice_duration),
+
         "-c:v", "libx264",
         "-c:a", "aac",
 
         output
     ]
 
-    
     subprocess.run(cmd, check=True)
 
     print("\n🎉 FINAL VIDEO 생성 완료!")
     print("👉", output)
 
     return output
-    
+
+
 def get_audio_duration(path):
 
     cmd = [
