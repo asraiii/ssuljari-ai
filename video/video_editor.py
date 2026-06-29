@@ -4,6 +4,7 @@ import os
 
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
+from video.video_downloader import download_video
 
 
 def build_final_video(data):
@@ -19,18 +20,35 @@ def build_final_video(data):
     subtitle = "output/subtitle.srt"
 
     # ==========================
+    # 0. 배경영상 먼저 강제 생성 (핵심)
+    # ==========================
+    video_path = download_video(data["bg_video"])
+
+    if not video_path or not os.path.exists(video_path):
+        print("❌ 배경 영상 실패 → 강제 종료")
+        return None
+
+    # ==========================
     # 1. 음성 생성
     # ==========================
+    print("\n==============================")
+    print(" TTS GENERATION ")
+    print("==============================")
+
     create_voice(data["story"])
 
     # ==========================
     # 2. BGM 다운로드
     # ==========================
+    print("\n==============================")
+    print(" BGM DOWNLOAD ")
+    print("==============================")
+
     download_bgm(data["bgm"])
 
-    # 🔥 BGM 안전장치 (파일 깨짐 방지)
+    # BGM 안전장치
     if not os.path.exists(bgm) or os.path.getsize(bgm) < 1000:
-        print("❌ BGM 파일 오류 → 무음으로 대체")
+        print("❌ BGM 오류 → 무음 처리")
         open(bgm, "wb").write(b"")
 
     # ==========================
@@ -39,6 +57,7 @@ def build_final_video(data):
     voice_duration = get_audio_duration(voice)
 
     lines = data["story"].split("\\n")
+
     time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
@@ -59,8 +78,11 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 4. FFmpeg 합성 (핵심)
+    # 4. FFmpeg 합성
     # ==========================
+    print("\n==============================")
+    print(" FFmpeg START ")
+    print("==============================")
 
     cmd = [
         "ffmpeg",
@@ -72,7 +94,6 @@ def build_final_video(data):
 
         "-vf", f"subtitles={subtitle}",
 
-        # 🔥 안정화된 오디오 믹스
         "-filter_complex",
         "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
 
@@ -106,6 +127,7 @@ def get_audio_duration(path):
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
+
     data = json.loads(result.stdout)
 
     return float(data["format"]["duration"])
