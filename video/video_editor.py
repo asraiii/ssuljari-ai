@@ -27,28 +27,28 @@ def build_final_video(data):
     download_bgm(data["bgm"])
 
     # ==========================
-    # 3. 음성 길이 계산
+    # 3. 자막 길이 계산
     # ==========================
     voice_duration = get_audio_duration(voice)
 
-    # ==========================
-    # 4. 자막 생성 (음성 기준)
-    # ==========================
     lines = data["story"].split("\\n")
 
     time_per_line = voice_duration / len(lines)
 
+    # ==========================
+    # 4. SRT 자막 생성 (자동 타이밍)
+    # ==========================
     with open(subtitle, "w", encoding="utf-8") as f:
 
         current_time = 0
 
         for i, line in enumerate(lines, start=1):
 
-            start = int(current_time)
-            end = int(current_time + time_per_line)
+            start = current_time
+            end = current_time + time_per_line
 
             f.write(f"{i}\n")
-            f.write(f"00:00:{start:02},000 --> 00:00:{end:02},000\n")
+            f.write(f"00:00:{int(start):02},000 --> 00:00:{int(end):02},000\n")
             f.write(line + "\n\n")
 
             current_time = end
@@ -56,9 +56,8 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 5. FFmpeg 합성
+    # 5. FFmpeg 영상 합성
     # ==========================
-
     cmd = [
         "ffmpeg",
         "-y",
@@ -67,10 +66,12 @@ def build_final_video(data):
         "-i", voice,
         "-i", bgm,
 
-        "-vf", "subtitles=output/subtitle.srt",
+        "-vf", f"subtitles={subtitle}",
 
         "-filter_complex",
-        "[1:a]volume=1.5[a1];[2:a]volume=0.3[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        "[1:a]volume=1.5[a1];"
+        "[2:a]volume=0.3[a2];"
+        "[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
 
         "-map", "0:v",
         "-map", "[aout]",
@@ -91,6 +92,9 @@ def build_final_video(data):
     return output
 
 
+# ==========================
+# AUDIO DURATION 함수
+# ==========================
 def get_audio_duration(path):
 
     cmd = [
