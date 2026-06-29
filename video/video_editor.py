@@ -1,58 +1,17 @@
 import subprocess
 import json
-import random
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
+from video.video_downloader import download_video
 
 
-# ==========================
-# 🔥 Hook 강화 시스템
-# ==========================
-def build_hook_variants(story_lines):
-
-    first = story_lines[0]
-
-    hooks = [
-        f"“이게 말이 돼?” {first}",
-        f"잠깐만… {first}",
-        f"충격입니다. {first}",
-        f"아무도 몰랐던 이야기. {first}",
-        f"이건 진짜 소름입니다. {first}"
-    ]
-
-    return random.choice(hooks)
-
-
-# ==========================
-# 🔥 오디오 길이 측정
-# ==========================
-def get_audio_duration(path):
-
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "json",
-        path
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    data = json.loads(result.stdout)
-
-    return float(data["format"]["duration"])
-
-
-# ==========================
-# 🔥 FINAL VIDEO BUILDER
-# ==========================
 def build_final_video(data):
 
     print("\n==============================")
     print(" FINAL VIDEO BUILDER ")
     print("==============================")
 
-    bg = "output/bg.mp4"
+    bg = download_video(data["bg_video"])   # 🔥 핵심 수정 (이게 bg.mp4 대신 실제 경로)
     voice = "output/voice.mp3"
     bgm = "output/bgm.mp3"
     output = "output/final.mp4"
@@ -69,24 +28,19 @@ def build_final_video(data):
     download_bgm(data["bgm"])
 
     # ==========================
-    # 3. Hook 강화
+    # 3. 영상 체크 (핵심 안전장치)
     # ==========================
-    lines = data["story"].split("\\n")
-    hook = build_hook_variants(lines)
-
-    print("\n🔥 HOOK:", hook)
-
-    # 첫 문장 교체
-    lines[0] = hook
+    if not bg:
+        print("❌ 배경 영상 다운로드 실패 → pipeline 중단")
+        return None
 
     # ==========================
-    # 4. 음성 길이
+    # 4. 자막 길이 계산
     # ==========================
     voice_duration = get_audio_duration(voice)
 
-    # ==========================
-    # 5. 자막 생성
-    # ==========================
+    lines = data["story"].split("\\n")
+
     time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
@@ -107,8 +61,9 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 6. FFmpeg 합성
+    # 5. FFmpeg 합성
     # ==========================
+
     cmd = [
         "ffmpeg",
         "-y",
@@ -139,3 +94,20 @@ def build_final_video(data):
     print("👉", output)
 
     return output
+
+
+def get_audio_duration(path):
+
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    data = json.loads(result.stdout)
+
+    return float(data["format"]["duration"])
