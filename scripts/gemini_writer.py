@@ -234,6 +234,60 @@ def generate_content_pack(title, content):
 라고 반응할 수준이어야 한다.
 
 ========================
+⑥ 영상 분위기 선택
+========================
+
+스토리에 가장 어울리는 배경영상과 BGM을 선택한다.
+
+예시
+
+회사 이야기
+→ office
+
+카페 데이트
+→ cafe
+
+헤어짐
+→ rain
+
+밤 감성
+→ night
+
+일상
+→ subway
+
+긴장감
+→ minecraft
+
+감정도 반드시 선택한다.
+
+배경영상(bg_video)
+
+subway
+minecraft
+rain
+cafe
+night
+office
+park
+
+BGM(bgm)
+
+sad
+tense
+happy
+calm
+
+emotion
+
+sad
+shock
+anger
+happy
+regret
+revenge
+
+========================
 추가 규칙
 ========================
 
@@ -282,6 +336,13 @@ def generate_content_pack(title, content):
   "title":"...",
   "thumbnail":"...",
   "hook":"...",
+
+  "bg_video":"cafe",
+
+  "bgm":"tense",
+
+  "emotion":"shock",
+
   "hashtags":[
     "#썰",
     "#연애",
@@ -302,6 +363,32 @@ story 안에서 줄바꿈은 \n 으로 표현한다.
 반드시 \\n 문자열만 사용한다.
 
 hook은 반드시 story의 첫 번째 문장과 동일하다.
+
+bg_video는 반드시 아래 중 하나만 출력한다.
+
+subway
+minecraft
+rain
+cafe
+night
+office
+park
+
+bgm은 반드시 아래 중 하나만 출력한다.
+
+sad
+tense
+happy
+calm
+
+emotion은 반드시 아래 중 하나만 출력한다.
+
+sad
+shock
+anger
+happy
+regret
+revenge
 
 JSON 이외의 모든 출력은 금지한다.
 
@@ -330,7 +417,10 @@ JSON 이외의 모든 출력은 금지한다.
                 "story",
                 "title",
                 "thumbnail",
-                "hook"
+                "hook",
+                "bg_video",
+                "bgm",
+                "emotion"
             ]
 
             if not all(k in data for k in required):
