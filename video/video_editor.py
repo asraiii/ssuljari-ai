@@ -4,6 +4,47 @@ from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
 
 
+# ==========================
+# 🎯 감정 기반 자막 스타일
+# ==========================
+def get_caption_style(emotion):
+
+    styles = {
+        "shock": {
+            "color": "red",
+            "prefix": "🔥",
+            "speed": 1.0
+        },
+        "anger": {
+            "color": "red",
+            "prefix": "‼️",
+            "speed": 1.1
+        },
+        "sad": {
+            "color": "blue",
+            "prefix": "…",
+            "speed": 0.9
+        },
+        "happy": {
+            "color": "yellow",
+            "prefix": "😊",
+            "speed": 1.0
+        },
+        "regret": {
+            "color": "gray",
+            "prefix": "💭",
+            "speed": 0.95
+        },
+        "revenge": {
+            "color": "red",
+            "prefix": "💀",
+            "speed": 1.05
+        }
+    }
+
+    return styles.get(emotion, styles["sad"])
+
+
 def build_final_video(data):
 
     print("\n==============================")
@@ -27,16 +68,21 @@ def build_final_video(data):
     download_bgm(data["bgm"])
 
     # ==========================
-    # 3. 자막 길이 계산
+    # 3. 음성 길이 계산
     # ==========================
     voice_duration = get_audio_duration(voice)
+
+    # ==========================
+    # 4. 자막 스타일 적용
+    # ==========================
+    style = get_caption_style(data["emotion"])
 
     lines = data["story"].split("\\n")
 
     time_per_line = voice_duration / len(lines)
 
     # ==========================
-    # 4. SRT 자막 생성 (자동 타이밍)
+    # 5. SRT 자막 생성 (스타일 적용)
     # ==========================
     with open(subtitle, "w", encoding="utf-8") as f:
 
@@ -47,17 +93,25 @@ def build_final_video(data):
             start = current_time
             end = current_time + time_per_line
 
+            styled_line = f"{style['prefix']} {line}"
+
             f.write(f"{i}\n")
             f.write(f"00:00:{int(start):02},000 --> 00:00:{int(end):02},000\n")
-            f.write(line + "\n\n")
+            f.write(styled_line + "\n\n")
 
             current_time = end
 
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 5. FFmpeg 영상 합성
+    # 6. FFmpeg 합성
     # ==========================
+    vf_filter = f"subtitles={subtitle}"
+
+    # shock / anger는 강조 효과 추가
+    if data["emotion"] in ["shock", "anger", "revenge"]:
+        vf_filter += ",eq=contrast=1.3:brightness=0.05"
+
     cmd = [
         "ffmpeg",
         "-y",
@@ -66,7 +120,7 @@ def build_final_video(data):
         "-i", voice,
         "-i", bgm,
 
-        "-vf", f"subtitles={subtitle}",
+        "-vf", vf_filter,
 
         "-filter_complex",
         "[1:a]volume=1.5[a1];"
@@ -93,7 +147,7 @@ def build_final_video(data):
 
 
 # ==========================
-# AUDIO DURATION 함수
+# AUDIO DURATION
 # ==========================
 def get_audio_duration(path):
 
