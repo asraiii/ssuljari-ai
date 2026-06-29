@@ -1,12 +1,15 @@
 import os
 import requests
 
-PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
-
 PEXELS_VIDEO_URL = "https://api.pexels.com/videos/search"
 
 
 def download_video(query, output_path="output/bg.mp4"):
+
+    PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+
+    if not PEXELS_API_KEY:
+        raise Exception("PEXELS_API_KEY가 설정되지 않았습니다")
 
     print("\n==============================")
     print(" PEXELS VIDEO DOWNLOAD ")
@@ -19,7 +22,7 @@ def download_video(query, output_path="output/bg.mp4"):
     params = {
         "query": query,
         "per_page": 10,
-        "orientation": "portrait"  # 쇼츠용 세로영상
+        "orientation": "portrait"
     }
 
     try:
@@ -36,10 +39,8 @@ def download_video(query, output_path="output/bg.mp4"):
             print("❌ 영상 없음")
             return None
 
-        # 가장 첫번째 영상 선택
         video_files = data["videos"][0]["video_files"]
 
-        # 해상도 적당한 것 선택
         video_url = None
 
         for v in video_files:
