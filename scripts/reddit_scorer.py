@@ -1,108 +1,78 @@
-def score_post(title, content):
-
-    text = (title + " " + content).lower()
-
-    score = 0
-
-    emotion = [
-        "cry", "crying",
-        "shocked",
-        "furious",
-        "angry",
-        "heartbroken",
-        "betray",
-        "trauma"
-    ]
-
-    twist = [
-        "found out",
-        "turns out",
-        "later",
-        "but",
-        "however",
-        "secret",
-        "lied",
-        "cheating",
-        "affair"
-    ]
-
-    conflict = [
-        "fight",
-        "argument",
-        "refuse",
-        "ignored",
-        "stormed",
-        "accuse",
-        "yelled"
-    ]
-
-    relationship = [
-        "boyfriend",
-        "girlfriend",
-        "wife",
-        "husband",
-        "dating",
-        "relationship",
-        "marriage",
-        "divorce",
-        "breakup",
-        "cheating",
-        "affair"
-    ]
-
-    score += sum(4 for w in emotion if w in text)
-    score += sum(5 for w in twist if w in text)
-    score += sum(4 for w in conflict if w in text)
-    score += sum(2 for w in relationship if w in text)
-
-    if "aitah" in text:
-        score += 10
-
-    if "wibta" in text:
-        score += 8
-
-    length = len(text)
-
-    if 800 <= length <= 3000:
-        score += 15
-    elif length < 400:
-        score -= 15
-
-    if "divorce" in text:
-        score += 5
-    if "cheating" in text:
-        score += 5
-    if "pregnant" in text:
-        score += 3
-
-    return score
-
-
 def pick_best_post(posts):
 
-    scored = []
-
-    for post in posts:
-
-        if not isinstance(post, dict):
-            continue
-
-        if "title" not in post or "content" not in post:
-            continue
-
-        s = score_post(post["title"], post["content"])
-        scored.append((s, post))
-
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    print("\n===== TOP10 =====")
-
-    for score, post in scored[:10]:
-        subreddit = post.get("subreddit", "unknown")
-        print(f"[{score}] ({subreddit}) {post['title']}")
-
-    # 🔥 핵심 수정
-    if not scored:
+    if not posts:
         return None
 
-    return scored[0][1]   # TOP1만 반환
+    def score(post):
+
+        score = 0
+
+        # 추천수
+        score += post.get("score", 0) * 2
+
+        # 댓글수
+        score += post.get("comments", 0)
+
+        text = (
+            post.get("title", "") + " " +
+            post.get("content", "")
+        ).lower()
+
+        # 쇼츠에서 잘 먹히는 키워드
+        keywords = [
+            "boyfriend",
+            "girlfriend",
+            "husband",
+            "wife",
+            "married",
+            "cheating",
+            "divorce",
+            "wedding",
+            "relationship",
+            "mother",
+            "father",
+            "family",
+            "money",
+            "bank",
+            "friend",
+            "boss",
+            "job",
+            "coworker",
+            "secret",
+            "lied",
+            "caught",
+            "pregnant",
+            "text",
+            "phone",
+            "sister",
+            "brother"
+        ]
+
+        for k in keywords:
+            if k in text:
+                score += 100
+
+        # 너무 짧은 글 제외
+        if len(post.get("content", "")) < 500:
+            score -= 300
+
+        # 너무 긴 글 감점
+        if len(post.get("content", "")) > 5000:
+            score -= 100
+
+        return score
+
+    posts = sorted(
+        posts,
+        key=score,
+        reverse=True
+    )
+
+    print("\n==============================")
+    print(" BEST REDDIT POST ")
+    print("==============================")
+
+    print("제목 :", posts[0]["title"])
+    print("점수 :", score(posts[0]))
+
+    return posts[0]
