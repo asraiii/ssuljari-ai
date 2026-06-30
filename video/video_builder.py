@@ -1,40 +1,37 @@
-import os
-from video.video_downloader import download_video
+from video.voice_generator import create_voice
+from video.bgm_downloader import download_bgm
+from video.video_editor import build_final_video
 
 
 def build_video(data):
 
-    print("\n==============================")
-    print(" VIDEO BUILDER ")
-    print("==============================")
+    print("\n==========================")
+    print(" VIDEO BUILD START ")
+    print("==========================")
 
-    print(f"제목 : {data['title']}")
-    print(f"썸네일 : {data['thumbnail']}")
+    # --------------------------
+    # TTS
+    # --------------------------
 
-    print(f"배경영상 : {data['bg_video']}")
-    print(f"BGM : {data['bgm']}")
-    print(f"감정 : {data['emotion']}")
+    print("\n[TTS]")
+    create_voice(data["story"])
 
-    print("\n===== STORY =====")
+    # --------------------------
+    # BGM
+    # --------------------------
 
-    lines = data["story"].split("\\n")
+    print("\n[BGM]")
+    download_bgm(data["bgm"])
 
-    for i, line in enumerate(lines, start=1):
-        print(f"{i}. {line}")
+    # --------------------------
+    # FINAL VIDEO
+    # --------------------------
 
-    # ==========================
-    # ⭐ 여기 핵심 추가 부분
-    # ==========================
+    print("\n[EDITOR]")
+    output = build_final_video(data)
 
-    print("\n==============================")
-    print(" 영상 다운로드 시작 ")
-    print("==============================")
+    print("\n==========================")
+    print(" VIDEO COMPLETE ")
+    print("==========================")
 
-    video_path = download_video(data["bg_video"])
-
-    if video_path:
-        print(f"\n✅ 영상 다운로드 완료: {video_path}")
-    else:
-        print("\n❌ 영상 다운로드 실패")
-
-    print("\n영상 제작 준비 완료.")
+    return output
