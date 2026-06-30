@@ -1,60 +1,87 @@
+import os
 import requests
 import random
-import os
 
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
+PEXELS_VIDEO_URL = "https://api.pexels.com/videos/search"
 
 BGM_KEYWORDS = {
-    "sad": "sad piano music",
-    "angry": "intense cinematic music",
-    "suspense": "dark thriller music",
-    "happy": "happy upbeat music",
-    "shock": "cinematic hit sound",
-    "default": "cinematic background music"
+    "sad": "sad piano",
+    "tense": "cinematic tension",
+    "happy": "happy upbeat",
+    "calm": "ambient background",
+    "shock": "dramatic cinematic",
+    "anger": "dark tension",
+    "regret": "emotional piano",
+    "revenge": "intense cinematic",
+    "default": "cinematic background"
 }
 
 
 def get_bgm_url(emotion: str):
 
-    query = BGM_KEYWORDS.get(emotion, BGM_KEYWORDS["default"])
+    emotion = (emotion or "default").lower()
 
-    # ==========================
-    # 1. PEXELS FIRST (우선)
-    # ==========================
+    query = BGM_KEYWORDS.get(
+        emotion,
+        BGM_KEYWORDS["default"]
+    )
+
+    headers = {
+        "Authorization": PEXELS_API_KEY
+    }
+
+    params = {
+        "query": query,
+        "per_page": 10
+    }
+
     try:
-        url = f"https://api.pexels.com/videos/search?query={query}&per_page=1"
 
-        headers = {
-            "Authorization": PEXELS_API_KEY
-        }
+        response = requests.get(
+            PEXELS_VIDEO_URL,
+            headers=headers,
+            params=params,
+            timeout=20
+        )
 
-        res = requests.get(url, headers=headers).json()
+        response.raise_for_status()
 
-        video_files = res["videos"][0]["video_files"]
+        data = response.json()
 
-        # 가장 작은 mp4 선택
-        return random.choice(video_files)["link"]
+        videos = data.get("videos", [])
+
+        if not videos:
+            print("❌ Pexels 결과 없음")
+            return None
+
+        candidates = []
+
+        for video in videos:
+
+            for file in video.get("video_files", []):
+
+                link = file.get("link", "")
+
+                if ".mp4" in link:
+                    candidates.append(file)
+
+        if not candidates:
+            print("❌ mp4 없음")
+            return None
+
+        candidates.sort(
+            key=lambda x: x.get("width", 99999)
+        )
+
+        return random.choice(
+            candidates[:3]
+        )["link"]
 
     except Exception as e:
-        print("⚠️ Pexels 실패 → fallback:", e)
 
-    # ==========================
-    # 2. FALLBACK (Pixabay)
-    # ==========================
-    try:
-        url = f"https://pixabay.com/api/videos/?key=YOUR_KEY&q={query}"
+        print("❌ Pexels BGM ERROR")
+        print(e)
 
-        res = requests.get(url).json()
-
-        hits = res["hits"]
-
-        return hits[0]["videos"]["small"]["url"]
-
-    except Exception as e:
-        print("⚠️ Pixabay 실패 → 최종 fallback:", e)
-
-    # ==========================
-    # 3. LAST RESORT (safe silent)
-    # ==========================
-    return None
+        return None
