@@ -1,21 +1,11 @@
-import json
 from scripts.telegram_sender import send_video
-
-from scripts.reddit_worker import (
-    fetch_reddit_posts,
-    mark_post_as_used
-)
-
-from scripts.reddit_scorer import (
-    pick_best_post
-)
 
 from scripts.gemini_writer import (
     generate_content_pack
 )
 
-# 🔥 추가된 부분 (이거 꼭 필요)
-from video.video_editor import build_final_video
+# 🔥 변경됨
+from video.video_builder import build_video
 
 
 def run():
@@ -23,7 +13,7 @@ def run():
     print("\n[1] TEST MODE (Reddit skip)")
 
     # ==========================
-    # 🔥 Reddit 대신 테스트 데이터
+    # 테스트 데이터
     # ==========================
     post = {
         "title": "남친이 내 통장을 몰래 봤다",
@@ -58,14 +48,15 @@ def run():
 
     print("\n[3] VIDEO BUILDER 실행")
 
-    video_path = build_final_video(data)
+    video_path = build_video(data)
 
-    print("\n📤 Telegram 전송")
+    print("\n[4] Telegram 전송")
 
     send_video(video_path)
 
     print("\n🎉 TEST COMPLETE")
-    return data
+
+    return video_path
 
 
 if __name__ == "__main__":
