@@ -1,150 +1,109 @@
-import requests
-import json
+import praw
 import os
-import time
+import json
+import random
 
-# =========================
-# 수집할 Reddit
-# =========================
+USED_FILE = "output/used_posts.json"
+
+reddit = praw.Reddit(
+    client_id=os.getenv("REDDIT_CLIENT_ID"),
+    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent="ssuljari-ai"
+)
 
 SUBREDDITS = [
     "relationship_advice",
+    "TrueOffMyChest",
     "AITAH",
-    "AmIOverreacting",
-    "TrueOffMyChest"
+    "confession",
+    "offmychest",
+    "AmItheAsshole"
 ]
 
-RELATIONSHIP_KEYWORDS = [
-    "boyfriend", "girlfriend", "wife", "husband",
-    "dating", "relationship", "marriage", "wedding",
-    "fiance", "engaged", "proposal",
-    "cheating", "affair", "divorce", "breakup"
-]
 
-USED_POSTS_FILE = "used_posts.json"
+def load_used():
 
-
-# =========================
-# used posts
-# =========================
-
-def load_used_posts():
-    if not os.path.exists(USED_POSTS_FILE):
-        return set()
+    if not os.path.exists(USED_FILE):
+        return []
 
     try:
-        with open(USED_POSTS_FILE, "r", encoding="utf-8") as f:
-            return set(json.load(f))
+        with open(USED_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     except:
-        return set()
-
-
-def save_used_posts(used_posts):
-    with open(USED_POSTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(list(used_posts), f, ensure_ascii=False, indent=2)
-
-
-# =========================
-# Reddit fetch (JSON API)
-# =========================
-
-def fetch_subreddit(subreddit, limit=30):
-
-    url = f"https://www.reddit.com/r/{subreddit}/top.json?limit={limit}"
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/137.0 Safari/537.36"
-    }
-
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-
-        print("=" * 50)
-        print(url)
-        print(response.status_code)
-        print(response.headers.get("content-type"))
-        print(response.text[:300])
-        print("=" * 50)
-
-        # 🔥 429 / 실패 방지
-        if response.status_code != 200:
-            print(f"실패 : r/{subreddit} (status {response.status_code})")
-            return []
-
-        data = response.json()
-        posts = []
-
-        for child in data["data"]["children"]:
-
-            p = child["data"]
-
-            title = p.get("title", "")
-            selftext = p.get("selftext", "")
-            url = "https://reddit.com" + p.get("permalink", "")
-
-            text = (title + " " + selftext).lower()
-
-            if not any(k in text for k in RELATIONSHIP_KEYWORDS):
-                continue
-
-            posts.append({
-                "url": url,
-                "subreddit": subreddit,
-                "title": title,
-                "content": selftext[:1500]
-            })
-
-        return posts
-
-    except Exception as e:
-        print(f"실패 : r/{subreddit} -> {e}")
         return []
 
 
-# =========================
-# main fetch
-# =========================
+def save_used(data):
+
+    os.makedirs("output", exist_ok=True)
+
+    with open(USED_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
 
 def fetch_reddit_posts(limit=30):
 
-    used_posts = load_used_posts()
-    all_posts = []
+    used = load_used()
 
-    for subreddit in SUBREDDITS:
+    posts = []
 
-        print(f"\n수집 중 : r/{subreddit}")
+    random.shuffle(SUBREDDITS)
 
-        posts = fetch_subreddit(subreddit, limit)
+    for subreddit_name in SUBREDDITS:
 
-        for p in posts:
+        try:
 
-            if p["url"] in used_posts:
-                continue
+            subreddit = reddit.subreddit(subreddit_name)
 
-            all_posts.append(p)
+            for post in subreddit.hot(limit=limit):
 
-        # 🔥 핵심: Reddit 보호 (429 방지)
-        time.sleep(2)
+                if post.stickied:
+                    continue
 
-    print(f"\n총 {len(all_posts)}개 수집 완료")
+                if post.id in used:
+                    continue
 
-    return all_posts
+                if len(post.selftext) < 200:
+                    continue
+
+                posts.append({
+
+                    "id": post.id,
+
+                    "title": post.title.strip(),
+
+                    "content": post.selftext.strip(),
+
+                    "score": post.score,
+
+                    "comments": post.num_comments,
+
+                    "subreddit": subreddit_name
+
+                })
+
+        except Exception as e:
+
+            print("Reddit 오류:", e)
+
+    posts.sort(
+        key=lambda x: (
+            x["score"] * 2
+            + x["comments"]
+        ),
+        reverse=True
+    )
+
+    return posts
 
 
-# =========================
-# used mark
-# =========================
+def mark_post_as_used(post_id):
 
-def mark_post_as_used(post):
+    used = load_used()
 
-    used_posts = load_used_posts()
+    if post_id not in used:
 
-    if not isinstance(post, dict):
-        return
+        used.append(post_id)
 
-    url = post.get("url")
-    if not url:
-        return
-
-    used_posts.add(url)
-    save_used_posts(used_posts)
+    save_used(used)
