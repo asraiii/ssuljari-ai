@@ -20,16 +20,16 @@ def build_final_video(data):
     subtitle = "output/subtitle.srt"
 
     # ==========================
-    # 0. 배경영상 먼저 강제 생성 (핵심)
+    # 1. 배경 영상 (무조건 먼저)
     # ==========================
     video_path = download_video(data["bg_video"])
 
     if not video_path or not os.path.exists(video_path):
-        print("❌ 배경 영상 실패 → 강제 종료")
+        print("❌ 배경영상 실패 → 종료")
         return None
 
     # ==========================
-    # 1. 음성 생성
+    # 2. 음성 생성
     # ==========================
     print("\n==============================")
     print(" TTS GENERATION ")
@@ -38,7 +38,7 @@ def build_final_video(data):
     create_voice(data["story"])
 
     # ==========================
-    # 2. BGM 다운로드
+    # 3. BGM 생성 (완전 안정화)
     # ==========================
     print("\n==============================")
     print(" BGM DOWNLOAD ")
@@ -46,18 +46,40 @@ def build_final_video(data):
 
     download_bgm(data["bgm"])
 
-    # BGM 안전장치
-    if not os.path.exists(bgm) or os.path.getsize(bgm) < 1000:
-        print("❌ BGM 오류 → 무음 처리")
+    if not os.path.exists(bgm) or os.path.getsize(bgm) < 2000:
+        print("❌ BGM 깨짐 → 무음 대체")
         open(bgm, "wb").write(b"")
 
     # ==========================
-    # 3. 자막 생성
+    # 4. 길이 계산
     # ==========================
     voice_duration = get_audio_duration(voice)
 
-    lines = data["story"].split("\\n")
+    # 🔥 핵심 수정: 배경영상 길이에 맞추기
+    bg_duration = get_video_duration(bg)
 
+    # 짧으면 loop 처리
+    if bg_duration < voice_duration:
+        loop_file = "output/bg_loop.mp4"
+
+        loop_cmd = [
+            "ffmpeg",
+            "-y",
+            "-stream_loop", "-1",
+            "-i", bg,
+            "-t", str(voice_duration),
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            loop_file
+        ]
+
+        subprocess.run(loop_cmd, check=True)
+        bg = loop_file
+
+    # ==========================
+    # 5. 자막 생성
+    # ==========================
+    lines = data["story"].split("\\n")
     time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
@@ -78,11 +100,8 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 4. FFmpeg 합성
+    # 6. FFmpeg 합성 (최종 안정)
     # ==========================
-    print("\n==============================")
-    print(" FFmpeg START ")
-    print("==============================")
 
     cmd = [
         "ffmpeg",
@@ -95,7 +114,7 @@ def build_final_video(data):
         "-vf", f"subtitles={subtitle}",
 
         "-filter_complex",
-        "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
 
         "-map", "0:v",
         "-map", "[aout]",
@@ -116,7 +135,28 @@ def build_final_video(data):
     return output
 
 
+# ==========================
+# helper functions
+# ==========================
+
 def get_audio_duration(path):
+
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    data = json.loads(result.stdout)
+
+    return float(data["format"]["duration"])
+
+
+def get_video_duration(path):
 
     cmd = [
         "ffprobe",
