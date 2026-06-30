@@ -1,4 +1,5 @@
 import json
+from scripts.telegram_sender import send_video
 
 from scripts.reddit_worker import (
     fetch_reddit_posts,
