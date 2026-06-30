@@ -4,7 +4,7 @@ import os
 
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
-from video.video_downloader import download_video
+from video.emotion_timeline import build_emotion_timeline
 from video.bgm_selector import select_bgm
 
 
@@ -21,67 +21,56 @@ def build_final_video(data):
     subtitle = "output/subtitle.srt"
 
     # ==========================
-    # 1. 배경 영상 (무조건 먼저)
-    # ==========================
-    video_path = download_video(data["bg_video"])
-
-    if not video_path or not os.path.exists(video_path):
-        print("❌ 배경영상 실패 → 종료")
-        return None
-
-    # ==========================
-    # 2. 음성 생성
+    # 1. 음성 생성
     # ==========================
     print("\n==============================")
     print(" TTS GENERATION ")
     print("==============================")
-
     create_voice(data["story"])
+    print("✅ 음성 생성 완료: output/voice.mp3")
 
     # ==========================
-    # 3. BGM 생성 (완전 안정화)
+    # 2. BGM 다운로드 (기본 fallback)
     # ==========================
     print("\n==============================")
     print(" BGM DOWNLOAD ")
     print("==============================")
 
-    bgm_query = select_bgm(data.get("emotion", "default"))
-    download_bgm(bgm_query)
+    download_bgm(data["bgm"])
 
-    if not os.path.exists(bgm) or os.path.getsize(bgm) < 2000:
-        print("❌ BGM 깨짐 → 무음 대체")
+    # 🔥 BGM 안전 체크
+    if not os.path.exists(bgm) or os.path.getsize(bgm) < 1000:
+        print("❌ BGM 깨짐 → 무음 처리")
         open(bgm, "wb").write(b"")
 
+    print("✅ BGM 다운로드 완료: output/bgm.mp3")
+
     # ==========================
-    # 4. 길이 계산
+    # 3. 감정 타임라인 생성
+    # ==========================
+    timeline = build_emotion_timeline(
+        data["story"],
+        data.get("emotion", "sad")
+    )
+
+    # ==========================
+    # 4. BGM 리스트 생성
+    # ==========================
+    bgm_tracks = []
+
+    for t in timeline:
+        bgm_tracks.append(select_bgm(t["emotion"]))
+
+    # ==========================
+    # 5. 자막 생성 (음성 기준)
     # ==========================
     voice_duration = get_audio_duration(voice)
 
-    # 🔥 핵심 수정: 배경영상 길이에 맞추기
-    bg_duration = get_video_duration(bg)
+    lines = data["story"].split("\n")
 
-    # 짧으면 loop 처리
-    if bg_duration < voice_duration:
-        loop_file = "output/bg_loop.mp4"
+    if len(lines) == 0:
+        lines = [data["story"]]
 
-        loop_cmd = [
-            "ffmpeg",
-            "-y",
-            "-stream_loop", "-1",
-            "-i", bg,
-            "-t", str(voice_duration),
-            "-c:v", "libx264",
-            "-c:a", "aac",
-            loop_file
-        ]
-
-        subprocess.run(loop_cmd, check=True)
-        bg = loop_file
-
-    # ==========================
-    # 5. 자막 생성
-    # ==========================
-    lines = data["story"].split("\\n")
     time_per_line = voice_duration / len(lines)
 
     with open(subtitle, "w", encoding="utf-8") as f:
@@ -102,8 +91,16 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 6. FFmpeg 합성 (최종 안정)
+    # 6. FFmpeg 합성
     # ==========================
+    print("\n==============================")
+    print(" FFmpeg START ")
+    print("==============================")
+
+    filter_complex = []
+
+    # 기존 bgm + voice mix 안정화
+    final_filter = "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first[aout]"
 
     cmd = [
         "ffmpeg",
@@ -115,8 +112,7 @@ def build_final_video(data):
 
         "-vf", f"subtitles={subtitle}",
 
-        "-filter_complex",
-        "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
+        "-filter_complex", final_filter,
 
         "-map", "0:v",
         "-map", "[aout]",
@@ -137,28 +133,7 @@ def build_final_video(data):
     return output
 
 
-# ==========================
-# helper functions
-# ==========================
-
 def get_audio_duration(path):
-
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "json",
-        path
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    data = json.loads(result.stdout)
-
-    return float(data["format"]["duration"])
-
-
-def get_video_duration(path):
 
     cmd = [
         "ffprobe",
