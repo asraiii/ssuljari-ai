@@ -5,6 +5,7 @@ import os
 from video.voice_generator import create_voice
 from video.bgm_downloader import download_bgm
 from video.video_downloader import download_video
+from video.bgm_selector import select_bgm
 
 
 def build_final_video(data):
@@ -44,7 +45,8 @@ def build_final_video(data):
     print(" BGM DOWNLOAD ")
     print("==============================")
 
-    download_bgm(data["bgm"])
+    bgm_query = select_bgm(data.get("emotion", "default"))
+    download_bgm(bgm_query)
 
     if not os.path.exists(bgm) or os.path.getsize(bgm) < 2000:
         print("❌ BGM 깨짐 → 무음 대체")
