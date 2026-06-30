@@ -1,43 +1,67 @@
+SUBTITLE_STYLE = {
+    "hook": {
+        "font_size": 42,
+        "bold": True,
+        "color": "yellow",
+        "animation": "pop"
+    },
+
+    "shock": {
+        "font_size": 38,
+        "bold": True,
+        "color": "red",
+        "animation": "shake"
+    },
+
+    "anger": {
+        "font_size": 36,
+        "bold": True,
+        "color": "orange",
+        "animation": "shake"
+    },
+
+    "sad": {
+        "font_size": 34,
+        "bold": False,
+        "color": "white",
+        "animation": "fade"
+    },
+
+    "happy": {
+        "font_size": 36,
+        "bold": True,
+        "color": "green",
+        "animation": "pop"
+    },
+
+    "regret": {
+        "font_size": 34,
+        "bold": False,
+        "color": "white",
+        "animation": "fade"
+    },
+
+    "revenge": {
+        "font_size": 38,
+        "bold": True,
+        "color": "red",
+        "animation": "zoom"
+    },
+
+    "default": {
+        "font_size": 34,
+        "bold": False,
+        "color": "white",
+        "animation": "none"
+    }
+}
+
+
 def get_subtitle_style(emotion: str):
 
     emotion = (emotion or "default").lower()
 
-    styles = {
-        "hook": {
-            "color": "yellow",
-            "font_size": 26,
-            "bold": True
-        },
-        "sad": {
-            "color": "blue",
-            "font_size": 24,
-            "bold": False
-        },
-        "angry": {
-            "color": "red",
-            "font_size": 28,
-            "bold": True
-        },
-        "suspense": {
-            "color": "purple",
-            "font_size": 25,
-            "bold": True
-        },
-        "shock": {
-            "color": "white",
-            "font_size": 30,
-            "bold": True
-        },
-        "happy": {
-            "color": "green",
-            "font_size": 26,
-            "bold": False
-        },
-        "default": {
-            "color": "white",
-            "font_size": 24,
-            "bold": False
-        }
-    }
-
-    return styles.get(emotion, styles["default"])
+    return SUBTITLE_STYLE.get(
+        emotion,
+        SUBTITLE_STYLE["default"]
+    )
