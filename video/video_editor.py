@@ -16,8 +16,40 @@ def safe_file(path):
     return os.path.exists(path) and os.path.getsize(path) > 1000
 
 
-def get_audio_duration(path):
+def ensure_audio_only(path):
+    """BGM이 영상이면 오디오로 변환"""
+    if not os.path.exists(path):
+        return
 
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "v",
+        "-show_entries", "stream=codec_type",
+        "-of", "csv=p=0",
+        path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if "video" in result.stdout:
+        print("⚠️ BGM이 영상 → 오디오 추출 변환")
+
+        fixed = path.replace(".mp3", "_fixed.mp3")
+
+        subprocess.run([
+            "ffmpeg",
+            "-y",
+            "-i", path,
+            "-vn",
+            "-acodec", "mp3",
+            fixed
+        ], check=True)
+
+        os.replace(fixed, path)
+
+
+def get_audio_duration(path):
     cmd = [
         "ffprobe",
         "-v", "error",
@@ -27,14 +59,13 @@ def get_audio_duration(path):
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
-
     data = json.loads(result.stdout)
 
     return float(data["format"]["duration"])
 
 
 # ==========================
-# MAIN PIPELINE
+# MAIN BUILDER
 # ==========================
 def build_final_video(data):
 
@@ -42,9 +73,6 @@ def build_final_video(data):
     print(" FINAL VIDEO BUILDER ")
     print("==============================")
 
-    # ==========================
-    # 🔥 절대경로 고정 (핵심)
-    # ==========================
     BASE_DIR = os.getcwd()
 
     bg = os.path.join(BASE_DIR, "output/bg.mp4")
@@ -54,17 +82,17 @@ def build_final_video(data):
     subtitle = os.path.join(BASE_DIR, "output/subtitle.srt")
 
     # ==========================
-    # 1. TTS 생성
+    # TTS
     # ==========================
     print("\n==============================")
     print(" TTS GENERATION ")
     print("==============================")
 
     create_voice(data["story"])
-    print("✅ 음성 생성 완료: output/voice.mp3")
+    print("✅ 음성 생성 완료")
 
     # ==========================
-    # 2. BGM 다운로드
+    # BGM DOWNLOAD
     # ==========================
     print("\n==============================")
     print(" BGM DOWNLOAD ")
@@ -72,48 +100,43 @@ def build_final_video(data):
 
     download_bgm(data["bgm"])
 
-    # 🔥 BGM fallback 처리
     if not safe_file(bgm):
-        print("⚠️ BGM 없음 → 무음 생성")
+        print("❌ BGM 없음 → 무음 생성")
         open(bgm, "wb").write(b"")
 
-    print("✅ BGM 다운로드 완료: output/bgm.mp3")
+    # 🔥 핵심 추가
+    ensure_audio_only(bgm)
+
+    print("✅ BGM 준비 완료")
 
     # ==========================
-    # 3. 감정 타임라인
+    # EMOTION TIMELINE
     # ==========================
     timeline = build_emotion_timeline(
         data["story"],
         data.get("emotion", "sad")
     )
 
-    # ==========================
-    # 4. BGM 선택
-    # ==========================
     bgm_tracks = []
-
     for t in timeline:
         bgm_tracks.append(select_bgm(t["emotion"]))
 
     # ==========================
-    # 5. 자막 생성
+    # SUBTITLE
     # ==========================
     voice_duration = get_audio_duration(voice)
 
     lines = data["story"].split("\n")
-
-    if len(lines) == 0:
+    if not lines:
         lines = [data["story"]]
 
     time_per_line = voice_duration / len(lines)
-
-    style = get_subtitle_style(data.get("emotion", "default"))
 
     with open(subtitle, "w", encoding="utf-8") as f:
 
         current_time = 0
 
-        for i, line in enumerate(lines, start=1):
+        for i, line in enumerate(lines, 1):
 
             start = current_time
             end = current_time + time_per_line
@@ -121,41 +144,19 @@ def build_final_video(data):
             f.write(f"{i}\n")
             f.write(f"00:00:{int(start):02},000 --> 00:00:{int(end):02},000\n")
 
-            styled_line = line
+            style = get_subtitle_style(data.get("emotion", "default"))
 
-            if style.get("bold"):
-                styled_line = f"**{line}**"
+            if style["bold"]:
+                line = f"**{line}**"
 
-            f.write(styled_line + "\n\n")
+            f.write(line + "\n\n")
 
             current_time = end
 
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 6. bg 영상 체크 + fallback
-    # ==========================
-    if not safe_file(bg):
-        print("❌ bg.mp4 없음 → fallback 생성")
-
-        subprocess.run([
-            "ffmpeg",
-            "-y",
-            "-f", "lavfi",
-            "-i", "color=c=black:s=240x426:d=2",
-            bg
-        ], check=True)
-
-    # ==========================
-    # 7. FINAL CHECK
-    # ==========================
-    print("\n📦 FINAL CHECK")
-    print("bg:", safe_file(bg))
-    print("voice:", safe_file(voice))
-    print("bgm:", safe_file(bgm))
-
-    # ==========================
-    # 8. FFmpeg 합성
+    # FINAL FFmpeg
     # ==========================
     print("\n==============================")
     print(" FFmpeg START ")
@@ -166,12 +167,11 @@ def build_final_video(data):
     cmd = [
         "ffmpeg",
         "-y",
-
         "-i", bg,
         "-i", voice,
         "-i", bgm,
 
-        "-vf", f"subtitles={subtitle}:force_style='Fontsize={style.get('font_size', 24)},PrimaryColour=&HFFFFFF&'",
+        "-vf", f"subtitles={subtitle}:force_style='Fontsize=30,PrimaryColour=&HFFFFFF&'",
 
         "-filter_complex", final_filter,
 
@@ -188,7 +188,5 @@ def build_final_video(data):
 
     subprocess.run(cmd, check=True)
 
-    print("\n🎉 FINAL VIDEO 생성 완료!")
-    print("👉", output)
-
+    print("\n🎉 완료:", output)
     return output
