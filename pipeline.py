@@ -58,11 +58,13 @@ def run():
 
     print("\n[3] VIDEO BUILDER 실행")
 
-    # 🔥 여기 핵심 변경
-    build_final_video(data)
+    video_path = build_final_video(data)
+
+    print("\n📤 Telegram 전송")
+
+    send_video(video_path)
 
     print("\n🎉 TEST COMPLETE")
-
     return data
 
 
