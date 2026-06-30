@@ -188,5 +188,7 @@ def build_final_video(data):
 
     subprocess.run(cmd, check=True)
 
-    print("\n🎉 완료:", output)
+    print("\n🎉 FINAL VIDEO 생성 완료!")
+    print("👉", output)
+
     return output
