@@ -1,5 +1,6 @@
-import subprocess
 import os
+import subprocess
+
 from video.bgm_provider import get_bgm_url
 
 OUTPUT = "output/bgm.mp3"
@@ -7,20 +8,22 @@ OUTPUT = "output/bgm.mp3"
 
 def download_bgm(emotion: str):
 
+    print("\n==============================")
+    print(" BGM DOWNLOAD ")
+    print("==============================")
+
     url = get_bgm_url(emotion)
 
-    # ==========================
-    # 1. URL 없는 경우
-    # ==========================
     if not url:
-        print("❌ BGM 없음 → 무음 생성")
+        print("❌ BGM URL 없음")
+
         open(OUTPUT, "wb").write(b"")
+
         return OUTPUT
 
-    # ==========================
-    # 2. 다운로드
-    # ==========================
     try:
+
+        # 다운로드
         subprocess.run([
             "curl",
             "-L",
@@ -29,15 +32,35 @@ def download_bgm(emotion: str):
             OUTPUT
         ], check=True)
 
+        # 영상이면 오디오 추출
+        subprocess.run([
+            "ffmpeg",
+            "-y",
+            "-i", OUTPUT,
+            "-vn",
+            "-acodec", "mp3",
+            "output/bgm_fixed.mp3"
+        ], check=True)
+
+        os.replace(
+            "output/bgm_fixed.mp3",
+            OUTPUT
+        )
+
+        print("✅ BGM 다운로드 완료")
+
     except Exception as e:
-        print("❌ 다운로드 실패 → 무음:", e)
+
+        print("❌ BGM 다운로드 실패")
+        print(e)
+
         open(OUTPUT, "wb").write(b"")
 
-    # ==========================
-    # 3. 안전 보장
-    # ==========================
-    if not os.path.exists(OUTPUT) or os.path.getsize(OUTPUT) < 1000:
-        print("❌ BGM 깨짐 → 무음 fallback")
+    if not os.path.exists(OUTPUT):
+        open(OUTPUT, "wb").write(b"")
+
+    if os.path.getsize(OUTPUT) < 1000:
+        print("❌ BGM 손상 → 무음")
         open(OUTPUT, "wb").write(b"")
 
     return OUTPUT
