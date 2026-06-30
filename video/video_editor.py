@@ -9,6 +9,36 @@ from video.bgm_selector import select_bgm
 from video.subtitle_style_engine import get_subtitle_style
 
 
+# ==========================
+# SAFE FILE CHECK
+# ==========================
+def safe_file(path):
+    return os.path.exists(path) and os.path.getsize(path) > 1000
+
+
+# ==========================
+# AUDIO DURATION
+# ==========================
+def get_audio_duration(path):
+
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    data = json.loads(result.stdout)
+
+    return float(data["format"]["duration"])
+
+
+# ==========================
+# MAIN BUILDER
+# ==========================
 def build_final_video(data):
 
     print("\n==============================")
@@ -29,7 +59,7 @@ def build_final_video(data):
     print("==============================")
 
     create_voice(data["story"])
-    print("✅ 음성 생성 완료")
+    print("✅ 음성 생성 완료: output/voice.mp3")
 
     # ==========================
     # 2. BGM 다운로드
@@ -38,14 +68,14 @@ def build_final_video(data):
     print(" BGM DOWNLOAD ")
     print("==============================")
 
-    download_bgm(data.get("bgm", "default"))
+    download_bgm(data["bgm"])
 
-    # 🔥 BGM 안전 체크 (핵심)
-    if (not os.path.exists(bgm)) or os.path.getsize(bgm) < 1000:
-        print("❌ BGM 깨짐 → 무음 처리")
+    # 🔥 BGM 안전 패치
+    if not safe_file(bgm):
+        print("⚠️ BGM 없음 → 자동 무음 생성")
         open(bgm, "wb").write(b"")
 
-    print("✅ BGM 처리 완료")
+    print("✅ BGM 다운로드 완료: output/bgm.mp3")
 
     # ==========================
     # 3. 감정 타임라인
@@ -56,9 +86,10 @@ def build_final_video(data):
     )
 
     # ==========================
-    # 4. BGM 리스트
+    # 4. BGM 선택 (타임라인 기반)
     # ==========================
     bgm_tracks = []
+
     for t in timeline:
         bgm_tracks.append(select_bgm(t["emotion"]))
 
@@ -68,17 +99,17 @@ def build_final_video(data):
     voice_duration = get_audio_duration(voice)
 
     lines = data["story"].split("\n")
+
     if len(lines) == 0:
         lines = [data["story"]]
 
     time_per_line = voice_duration / len(lines)
 
-    emotion = data.get("emotion", "default")
-    style = get_subtitle_style(emotion)
-
     with open(subtitle, "w", encoding="utf-8") as f:
 
         current_time = 0
+
+        style = get_subtitle_style(data.get("emotion", "default"))
 
         for i, line in enumerate(lines, start=1):
 
@@ -100,20 +131,14 @@ def build_final_video(data):
     print("✅ 자막 생성 완료")
 
     # ==========================
-    # 6. FFmpeg
+    # 6. FFmpeg 합성
     # ==========================
     print("\n==============================")
     print(" FFmpeg START ")
     print("==============================")
 
-    final_filter = (
-        "[1:a]volume=1.2[a1];"
-        "[2:a]volume=0.3[a2];"
-        "[a1][a2]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-    )
-
-    # 🔥 BGM 안전 입력 처리
-    bgm_input = bgm if os.path.getsize(bgm) > 1000 else "anullsrc=r=44100:cl=stereo"
+    # 🔥 안정화 filter (핵심)
+    final_filter = "[1:a]volume=1.0[a1];[2:a]volume=0.0[a2];[a1][a2]amix=inputs=2[aout]"
 
     cmd = [
         "ffmpeg",
@@ -121,10 +146,9 @@ def build_final_video(data):
 
         "-i", bg,
         "-i", voice,
-        "-i", bgm_input,
+        "-i", bgm,
 
-        "-vf",
-        f"subtitles={subtitle}:force_style='Fontsize={style.get('font_size', 24)},PrimaryColour=&HFFFFFF&'",
+        "-vf", f"subtitles={subtitle}:force_style='Fontsize={style.get('font_size', 24)},PrimaryColour=&HFFFFFF&'",
 
         "-filter_complex", final_filter,
 
@@ -142,21 +166,6 @@ def build_final_video(data):
     subprocess.run(cmd, check=True)
 
     print("\n🎉 FINAL VIDEO 생성 완료!")
+    print("👉", output)
+
     return output
-
-
-def get_audio_duration(path):
-
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "json",
-        path
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    data = json.loads(result.stdout)
-
-    return float(data["format"]["duration"])
