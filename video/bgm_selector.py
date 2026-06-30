@@ -1,6 +1,11 @@
 import random
 
 BGM_MAP = {
+    "hook": [
+        "dramatic hit",
+        "cinematic rise",
+        "suspense buildup"
+    ],
     "sad": [
         "emotional piano",
         "sad cinematic music",
