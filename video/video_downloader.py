@@ -33,6 +33,8 @@ def download_video(query, output_path="output/bg.mp4"):
             timeout=10
         )
 
+        response.raise_for_status()
+
         data = response.json()
 
         if "videos" not in data or len(data["videos"]) == 0:
@@ -41,29 +43,61 @@ def download_video(query, output_path="output/bg.mp4"):
 
         video_files = data["videos"][0]["video_files"]
 
-        video_url = None
+        # --------------------------
+        # mp4만 선택
+        # --------------------------
+        mp4_files = [
+            v for v in video_files
+            if ".mp4" in v.get("link", "")
+        ]
 
-        for v in video_files:
-            if v.get("quality") == "sd":
-                video_url = v["link"]
-                break
+        if not mp4_files:
+            print("❌ mp4 파일 없음")
+            return None
 
-        if not video_url:
-            video_url = video_files[0]["link"]
+        # --------------------------
+        # 가장 작은 mp4 선택
+        # --------------------------
+        mp4_files = sorted(
+            mp4_files,
+            key=lambda x: x.get("width", 99999)
+        )
 
-        print("영상 URL:", video_url)
+        video_url = mp4_files[0]["link"]
 
-        video_data = requests.get(video_url, timeout=20)
+        print("선택된 영상:")
+        print(video_url)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        video_data = requests.get(
+            video_url,
+            timeout=30
+        )
+
+        video_data.raise_for_status()
+
+        os.makedirs(
+            os.path.dirname(output_path),
+            exist_ok=True
+        )
 
         with open(output_path, "wb") as f:
             f.write(video_data.content)
 
-        print(f"✅ 저장 완료: {output_path}")
+        # --------------------------
+        # 다운로드 검증
+        # --------------------------
+        if (
+            not os.path.exists(output_path)
+            or os.path.getsize(output_path) < 100000
+        ):
+            print("❌ 다운로드 실패 (파일 손상)")
+            return None
+
+        print(f"✅ 저장 완료 : {output_path}")
 
         return output_path
 
     except Exception as e:
-        print("❌ 다운로드 실패:", e)
+        print("❌ VIDEO DOWNLOAD ERROR")
+        print(e)
         return None
