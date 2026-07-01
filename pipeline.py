@@ -1,26 +1,34 @@
 from scripts.telegram_sender import send_video
 
+from scripts.reddit_worker import (
+    fetch_reddit_posts,
+    mark_post_as_used
+)
+
+from scripts.reddit_scorer import (
+    pick_best_post
+)
+
 from scripts.gemini_writer import (
     generate_content_pack
 )
 
-# 🔥 변경됨
 from video.video_builder import build_video
 
 
 def run():
 
-    print("\n[1] TEST MODE (Reddit skip)")
+    print("\n[1] REDDIT FETCH")
 
-    # ==========================
-    # 테스트 데이터
-    # ==========================
-    post = {
-        "title": "남친이 내 통장을 몰래 봤다",
-        "content": "I found out my boyfriend secretly checked my bank account and lied about it."
-    }
+    posts = fetch_reddit_posts()
 
-    print("\n[2] Gemini 생성")
+    post = pick_best_post(posts)
+
+    if not post:
+        print("❌ No posts found")
+        return None
+
+    print("\n[2] GEMINI CONTENT GENERATION")
 
     data = generate_content_pack(
         post["title"],
@@ -46,15 +54,17 @@ def run():
         print("❌ JSON 구조 실패")
         return None
 
-    print("\n[3] VIDEO BUILDER 실행")
+    print("\n[3] VIDEO BUILD")
 
     video_path = build_video(data)
 
-    print("\n[4] Telegram 전송")
+    print("\n[4] TELEGRAM SEND")
 
     send_video(video_path)
 
-    print("\n🎉 TEST COMPLETE")
+    mark_post_as_used(post["id"])
+
+    print("\n🎉 COMPLETE")
 
     return video_path
 
