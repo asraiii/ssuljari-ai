@@ -2,33 +2,43 @@ import os
 import requests
 
 
-BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+def send_video(video_path: str):
 
+    TOKEN = os.getenv("TELEGRAM_TOKEN")
+    CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-def send_video(video_path):
-
-    if not BOT_TOKEN or not CHAT_ID:
-        print("⚠ Telegram 설정 없음")
-        return
+    if not TOKEN or not CHAT_ID:
+        print("❌ Telegram env missing")
+        return False
 
     if not os.path.exists(video_path):
-        print("⚠ 영상 없음")
-        return
+        print("❌ video file not found:", video_path)
+        return False
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendVideo"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendVideo"
 
-    with open(video_path, "rb") as video:
+    try:
+        with open(video_path, "rb") as video:
 
-        requests.post(
-            url,
-            data={
-                "chat_id": CHAT_ID,
-                "caption": "🎬 AI 쇼츠 생성 완료"
-            },
-            files={
+            files = {
                 "video": video
             }
-        )
 
-    print("✅ Telegram 전송 완료")
+            data = {
+                "chat_id": CHAT_ID,
+                "supports_streaming": True,
+                "caption": "🔥 자동 생성 쇼츠"
+            }
+
+            res = requests.post(url, files=files, data=data, timeout=60)
+
+        if res.status_code == 200:
+            print("✅ Telegram 전송 성공")
+            return True
+        else:
+            print("❌ Telegram 실패:", res.text)
+            return False
+
+    except Exception as e:
+        print("❌ Telegram error:", e)
+        return False
