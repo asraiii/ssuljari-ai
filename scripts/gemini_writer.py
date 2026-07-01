@@ -1,6 +1,5 @@
 import os
 import json
-import re
 import time
 import google.generativeai as genai
 
@@ -9,407 +8,77 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def extract_json(text):
-    """🔥 JSON만 안전하게 추출 (안정 버전)"""
-
-    # 1. 코드블록 제거
     text = text.replace("```json", "").replace("```", "")
-
-    # 2. JSON 시작/끝 위치 직접 찾기
     start = text.find("{")
     end = text.rfind("}")
 
-    # JSON이 아예 없으면 실패
     if start == -1 or end == -1:
         return None
 
-    json_str = text[start:end+1]
-
     try:
-        return json.loads(json_str)
+        return json.loads(text[start:end+1])
     except:
         return None
+
 
 def generate_content_pack(title, content):
 
     prompt = f"""
-너는 한국 유튜브 쇼츠 채널 '썰자리'의 콘텐츠 제작 AI다.
+너는 한국 쇼츠 채널'썰자리'의 콘텐츠 바이럴 전문가다.
+조회수가 가장 잘 나올 한국 쇼츠 콘텐츠를 만든다.
 
-아래 Reddit 글을 소재로 조회수가 가장 잘 나올 한국 쇼츠 콘텐츠를 만든다.
+목표:
+- CTR 최대화
+- 시청 유지시간 최대화
 
-━━━━━━━━━━━━━━
-[Reddit 제목]
-{title}
+입력:
+제목: {title}
+내용: {content}
 
-[Reddit 내용]
-{content}
-━━━━━━━━━━━━━━
-
-========================
-목표
-========================
-
-- Reddit 글은 아이디어의 출발점으로만 사용한다.
-- 미국 글을 한국인이 실제 겪은 일처럼 완전히 재창작한다.
-- 번역처럼 보이면 실패다.
-- 블라인드, 네이트판, 에브리타임, 디시인사이드에 실제 올라온 글처럼 자연스러워야 한다.
-- 핵심 갈등만 유지하고 나머지는 자유롭게 변경한다.
-
-변경 가능
-
-- 등장인물
-- 직업
-- 장소
-- 관계
-- 대사
-- 사건
-- 결말
-- 반전
-
-조회수가 더 잘 나온다면 원문과 달라도 된다.
-
-========================
-① 쇼츠 대본
-========================
-
-- 45~60초
-- 약 350~500자
-- 1인칭
-- 한국식 표현
-- 등장인물 최대 3명
-
-반드시
-
-- 첫 문장은 Hook이다.
-- 첫 문장은 무조건 사건으로 시작한다.
-- 첫 문장만 보고도 끝까지 보고 싶어야 한다.
-- 첫 문장에 설명을 넣지 마라.
-- 첫 문장에 배경을 넣지 마라.
-- 첫 문장에 감정을 설명하지 마라.
-- 첫 문장은 20자 이하를 권장한다.
-
-전개
-
-- 첫 문장에서 사건이 이미 터져 있어야 한다.
-- 두 번째 문장에서 이유를 궁금하게 만든다.
-- 세 번째 문장에서 갈등이 폭발한다.
-- 중반에는 갈등이 계속 커져야 한다.
-- 중간에 긴 설명을 하지 마라.
-- 모든 문장은 다음 문장을 궁금하게 만들어라.
-- 마지막 3문장은 반드시 반전, 후회, 폭로, 결단 중 하나로 끝난다.
-- 마지막 문장은 독자가 댓글을 달고 싶게 끝낸다.
-
-작성 규칙
-
-- 줄바꿈 사용
-- 한 줄 = 하나의 완전한 문장
-- 한 문장 25자 이하
-- 25자를 넘으면 새로운 문장으로 나눈다.
-- 문장 중간에서 줄바꿈하지 마라.
-- 대사도 반드시 한 줄이 하나의 문장이다.
-- 대사를 두 줄로 쪼개지 마라.
-- 모든 줄은 마침표(.), 물음표(?), 느낌표(!), 또는 따옴표(")로 끝난다.
-- 빈 줄 금지
-
-========================
-② 제목
-========================
-
-내부적으로 10개 이상 만든 뒤 가장 좋은 1개만 출력한다.
-
-규칙
-
-- 내부적으로 20개 이상 만든 뒤 가장 클릭률 높은 제목 하나만 출력한다.
-- 기사 제목처럼 쓰지 마라.
-- 사건부터 보여준다.
-- 감정보다 사건을 먼저 보여준다.
-- 결과를 일부 숨겨 궁금증을 만든다.
-- 한국 쇼츠에서 많이 쓰는 제목 스타일을 사용한다.
-- 12~20자 사이를 권장한다.
-- '이것', '그날', '충격' 같은 의미 없는 낚시 단어는 사용하지 마라.
-- 제목만 봐도 사건이 떠오르게 작성한다.
-
-좋은 예시
-
-카페 간다 했다가 이혼했습니다
-남친 휴대폰을 봤다가 끝났습니다
-결혼식 전날 들켜버렸습니다
-친구가 제 남편과 잤습니다
-남편 말 한마디에 끝났습니다
-
-나쁜 예시
-
-내 이혼 사유는 이것
-충격적인 진실
-이게 맞나요
-믿을 수 없는 일
-
-========================
-③ 썸네일
-========================
-
-내부적으로 5개 이상 만든 뒤 가장 좋은 1개만 출력한다.
-
-규칙
-
-- 내부적으로 15개 이상 만든 뒤 가장 클릭률 높은 것 하나만 출력한다.
-- 3~8글자
-- 한눈에 이해된다.
-- 사건이 느껴져야 한다.
-- 명사만 쓰지 마라.
-- 사람 표정 설명 금지.
-- 괄호 금지.
-- '충격', '실화', '대박' 같은 흔한 단어 금지.
-- 독자가 내용을 상상하게 만들어라.
-
-좋은 예시
-
-결국 끝났다
-이혼 직전
-그 한마디
-다 들켰다
-진짜였다
-선 넘었네
-파혼했다
-끝내 버렸다
-
-나쁜 예시
-
-충격
-실화
-대박
-남편
-카페
-결혼
-
-========================
-④ Hook
-========================
-
-내부적으로 5개 이상 만든 뒤 가장 좋은 1개만 출력한다.
-
-규칙
-
-- 첫 문장만 듣고 끝까지 보게 만든다.
-- 사건부터 시작한다.
+규칙:
+- 미국 → 한국으로 100% 로컬라이징
 - 설명 금지
-- 인사 금지
-- 감정 설명 금지최종
-- Hook은 story의 첫 번째 문장과 반드시 동일해야 한다.
+- 배경 설명 금지
+- 감정 설명 금지
+- 무조건 사건 중심
+- 첫 줄 Hook = 무조건 사건 폭발
+- 25자 이하 짧은 문장
+- 줄바꿈은 \\n 문자열만 사용
 
-예시
+스토리 구조:
+1줄: 사건 발생
+2줄: 이유 궁금증
+3줄: 갈등 폭발
+중반: 악화
+후반: 반전/폭로/결단/후회
 
-남친이 제 통장을 몰래 봤습니다.
-회사 단톡방에서 제 욕을 봤습니다.
-친구가 제 남친이랑 바람났습니다.
-
-========================
-⑤ 최종 선택
-========================
-
-후보를 스스로 평가한다.
-
-평가 기준
-
-- CTR
-- 클릭률
-- 감정 자극
-- 궁금증
-- 한국인 공감
-- 쇼츠 중독성
-
-조회수가 낮을 것 같은 결과는 모두 폐기한다.
-
-평범하면 다시 만든다.
-
-가장 클릭하고 싶은 결과 하나만 출력한다.
-
-독자가
-
-"미쳤다"
-
-"와 진짜?"
-
-"나라면 헤어진다"
-
-라고 반응할 수준이어야 한다.
-
-========================
-⑥ 영상 분위기 선택
-========================
-
-스토리에 가장 어울리는 배경영상과 BGM을 선택한다.
-
-예시
-
-회사 이야기
-→ office
-
-카페 데이트
-→ cafe
-
-헤어짐
-→ rain
-
-밤 감성
-→ night
-
-일상
-→ subway
-
-긴장감
-→ minecraft
-
-감정도 반드시 선택한다.
-
-배경영상(bg_video)
-
-subway
-minecraft
-rain
-cafe
-night
-office
-park
-
-BGM(bgm)
-
-sad
-tense
-happy
-calm
-
-emotion
-
-sad
-shock
-anger
-happy
-regret
-revenge
-
-========================
-추가 규칙
-========================
-
-반드시 한국 문화로 변경한다.
-
-삭제
-
-- 미국 회사
-- 미국 학교
-- 미국 지명
-- 미국 법률
-- 미국 문화
-
-변경
-
-- 한국 직장
-- 한국 대학
-- 한국 가족 문화
-- 한국 연애
-- 한국 결혼
-
-설명체 금지
-
-번역체 금지
-
-영상 연출 금지
-
-========================
-출력 형식
-========================
-
-응답은 반드시 아래 JSON 객체 하나만 출력한다.
-
-절대로 설명을 추가하지 마라.
-
-절대로 코드블록을 사용하지 마라.
-
-절대로 json 코드블록을 출력하지 마라.
-
-절대로 JSON 앞뒤에 아무 문자도 넣지 마라.
-
-반드시 아래 형식을 그대로 따른다.
+출력 JSON (무조건 이것만):
 
 {{
-  "story":"첫줄\n둘째줄\n셋째줄",
+  "story":"첫줄\\n둘째줄\\n셋째줄",
   "title":"...",
   "thumbnail":"...",
   "hook":"...",
-
   "bg_video":"cafe",
-
   "bgm":"tense",
-
   "emotion":"shock",
-
-  "hashtags":[
-    "#썰",
-    "#연애",
-    "#실화",
-    "#쇼츠",
-    "#썰자리"
-  ]
+  "hashtags":["#썰","#연애","#실화","#쇼츠","#썰자리"]
 }}
 
-규칙
-
-story는 문자열이다.
-
-story 안에서 줄바꿈은 \n 으로 표현한다.
-
-실제 줄바꿈 문자를 넣지 마라.
-
-반드시 \\n 문자열만 사용한다.
-
-hook은 반드시 story의 첫 번째 문장과 동일하다.
-
-bg_video는 반드시 아래 중 하나만 출력한다.
-
-subway
-minecraft
-rain
-cafe
-night
-office
-park
-
-bgm은 반드시 아래 중 하나만 출력한다.
-
-sad
-tense
-happy
-calm
-
-emotion은 반드시 아래 중 하나만 출력한다.
-
-sad
-shock
-anger
-happy
-regret
-revenge
-
-JSON 이외의 모든 출력은 금지한다.
-
+절대 규칙:
+- JSON 외 출력 금지
+- 코드블록 금지
+- 설명 금지
 """
 
-    # ==========================
-    # Gemini Retry
-    # ==========================
-
-    for attempt in range(3):
-
+    for i in range(3):
         try:
-
-            response = model.generate_content(prompt)
-
-            text = response.text.strip()
+            res = model.generate_content(prompt)
+            text = res.text.strip()
 
             data = extract_json(text)
 
             if not data:
-                print(f"❌ JSON 파싱 실패 ({attempt+1}/3)")
                 time.sleep(2)
                 continue
 
@@ -425,7 +94,6 @@ JSON 이외의 모든 출력은 금지한다.
             ]
 
             if not all(k in data for k in required):
-                print(f"❌ 키 부족 ({attempt+1}/3)")
                 time.sleep(2)
                 continue
 
@@ -433,66 +101,10 @@ JSON 이외의 모든 출력은 금지한다.
             data["bgm"] = data["bgm"].strip().lower()
             data["emotion"] = data["emotion"].strip().lower()
 
-            valid_bg = [
-                "subway",
-                "minecraft",
-                "rain",
-                "cafe",
-                "night",
-                "office",
-                "park"
-            ]
-
-            valid_bgm = [
-                "sad",
-                "tense",
-                "happy",
-                "calm"
-            ]
-
-            valid_emotion = [
-                "sad",
-                "shock",
-                "anger",
-                "happy",
-                "regret",
-                "revenge"
-            ]
-
-            if data["bg_video"] not in valid_bg:
-                data["bg_video"] = "subway"
-
-            if data["bgm"] not in valid_bgm:
-                data["bgm"] = "calm"
-
-            if data["emotion"] not in valid_emotion:
-                data["emotion"] = "sad"
-
             return data
 
         except Exception as e:
-
-            print(f"Gemini 오류 ({attempt+1}/3) : {e}")
+            print(f"Gemini error: {e}")
             time.sleep(2)
 
-    print("❌ Gemini 최종 실패")
-
     return None
-
-
-def select_best_result(results):
-
-    prompt = f"""
-아래 쇼츠 중 가장 CTR 높은 1개만 선택:
-
-{json.dumps(results, ensure_ascii=False, indent=2)}
-
-JSON만 출력
-"""
-
-    response = model.generate_content(prompt)
-    text = response.text.strip()
-
-    data = extract_json(text)
-
-    return data if data else None
