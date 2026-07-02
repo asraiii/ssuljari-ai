@@ -1,17 +1,10 @@
 from scripts.telegram_sender import send_video
 
-from scripts.content_fetcher import (
-    fetch_posts,
-    mark_post_as_used
-)
+from scripts.news_fetcher import fetch_news
 
-from scripts.content_scorer import (
-    pick_best_post
-)
+from scripts.content_scorer import pick_best_post
 
-from scripts.gemini_writer import (
-    generate_content_pack
-)
+from scripts.gemini_writer import generate_content_pack
 
 from video.video_builder import build_video
 
@@ -19,15 +12,15 @@ from video.video_builder import build_video
 def run():
 
     print("\n======================================")
-    print("           CONTENT FETCH")
+    print("           NEWS FETCH")
     print("======================================")
 
-    posts = fetch_posts()
+    posts = fetch_news()
 
     post = pick_best_post(posts)
 
     if not post:
-        print("❌ No content found")
+        print("❌ No news found")
         return None
 
     print("\n======================================")
@@ -73,8 +66,6 @@ def run():
     print("======================================")
 
     send_video(video_path)
-
-    mark_post_as_used(post["id"])
 
     print("\n======================================")
     print("            COMPLETE")
