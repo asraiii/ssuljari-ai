@@ -1,15 +1,9 @@
-import praw
 import os
 import json
 import random
+import requests
 
 USED_FILE = "output/used_posts.json"
-
-reddit = praw.Reddit(
-    client_id=os.getenv("REDDIT_CLIENT_ID"),
-    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-    user_agent="ssuljari-ai"
-)
 
 SUBREDDITS = [
     "relationship_advice",
@@ -29,7 +23,6 @@ def load_used():
     try:
         with open(USED_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-
     except:
         return []
 
@@ -39,60 +32,91 @@ def save_used(data):
     os.makedirs("output", exist_ok=True)
 
     with open(USED_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def fetch_reddit_posts(limit=30):
+def fetch_posts(limit=30):
 
     used = load_used()
 
     posts = []
 
-    random.shuffle(SUBREDDITS)
+    subreddits = SUBREDDITS.copy()
+    random.shuffle(subreddits)
 
-    for subreddit_name in SUBREDDITS:
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    for subreddit in subreddits:
 
         try:
 
-            subreddit = reddit.subreddit(subreddit_name)
+            url = (
+                f"https://www.reddit.com/r/"
+                f"{subreddit}/hot.json?limit={limit}"
+            )
 
-            for post in subreddit.hot(limit=limit):
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=15
+            )
 
-                if post.stickied:
+            if response.status_code != 200:
+                print(f"{subreddit} 실패 : {response.status_code}")
+                continue
+
+            data = response.json()
+
+            for item in data["data"]["children"]:
+
+                post = item["data"]
+
+                if post["stickied"]:
                     continue
 
-                if post.id in used:
+                if post["id"] in used:
                     continue
 
-                if len(post.selftext) < 200:
+                if post["over_18"]:
+                    continue
+
+                if len(post.get("selftext", "")) < 200:
                     continue
 
                 posts.append({
 
-                    "id": post.id,
+                    "id": post["id"],
 
-                    "title": post.title.strip(),
+                    "title": post["title"].strip(),
 
-                    "content": post.selftext.strip(),
+                    "content": post["selftext"].strip(),
 
-                    "score": post.score,
+                    "score": post["score"],
 
-                    "comments": post.num_comments,
+                    "comments": post["num_comments"],
 
-                    "subreddit": subreddit_name
+                    "subreddit": subreddit
 
                 })
 
         except Exception as e:
 
-            print("Reddit 오류:", e)
+            print(f"{subreddit} 오류 :", e)
 
     posts.sort(
+
         key=lambda x: (
+
             x["score"] * 2
+
             + x["comments"]
+
         ),
+
         reverse=True
+
     )
 
     return posts
@@ -103,7 +127,6 @@ def mark_post_as_used(post_id):
     used = load_used()
 
     if post_id not in used:
-
         used.append(post_id)
 
     save_used(used)
