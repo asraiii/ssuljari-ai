@@ -1,37 +1,74 @@
 import requests
 import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 
 
 RSS_URLS = [
 
     "https://rss.donga.com/total.xml",
-
     "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
-
     "https://www.hani.co.kr/rss/"
 
 ]
+
+
+HEADERS = {
+
+    "User-Agent": "Mozilla/5.0"
+
+}
+
+
+def extract_article(url):
+
+    try:
+
+        res = requests.get(
+
+            url,
+
+            headers=HEADERS,
+
+            timeout=10
+
+        )
+
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        paragraphs = soup.find_all("p")
+
+        text = []
+
+        for p in paragraphs:
+
+            t = p.get_text(" ", strip=True)
+
+            if len(t) > 30:
+
+                text.append(t)
+
+        article = "\n".join(text)
+
+        return article
+
+    except Exception:
+
+        return ""
 
 
 def fetch_news():
 
     posts = []
 
-    headers = {
-
-        "User-Agent": "Mozilla/5.0"
-
-    }
-
-    for url in RSS_URLS:
+    for rss in RSS_URLS:
 
         try:
 
             res = requests.get(
 
-                url,
+                rss,
 
-                headers=headers,
+                headers=HEADERS,
 
                 timeout=10
 
@@ -43,31 +80,29 @@ def fetch_news():
 
                 title = item.findtext("title")
 
-                description = item.findtext("description")
-
                 link = item.findtext("link")
 
-                if not title:
+                if not title or not link:
 
                     continue
 
-                if not description:
+                article = extract_article(link)
 
-                    description = title
+                if len(article) < 500:
+
+                    continue
 
                 posts.append({
 
                     "title": title.strip(),
 
-                    "content": description.strip(),
+                    "content": article,
 
                     "url": link
 
                 })
 
         except Exception as e:
-
-            print(f"RSS 실패 : {url}")
 
             print(e)
 
