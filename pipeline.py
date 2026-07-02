@@ -1,7 +1,7 @@
 from scripts.telegram_sender import send_video
 
-from scripts.reddit_worker import (
-    fetch_reddit_posts,
+from scripts.content_fetcher import (
+    fetch_posts,
     mark_post_as_used
 )
 
@@ -14,6 +14,7 @@ from scripts.gemini_writer import (
 )
 
 from video.video_builder import build_video
+
 
 
 def run():
