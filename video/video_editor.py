@@ -1,24 +1,19 @@
 import os
 import subprocess
-import json
 
 
-# ==========================================
-# AUDIO DURATION (안정 버전)
-# ==========================================
 def get_audio_duration(path):
 
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "csv=p=0",
-            path
-        ],
-        capture_output=True,
-        text=True
-    )
+    if not os.path.exists(path):
+        return 0.0
+
+    result = subprocess.run([
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "csv=p=0",
+        path
+    ], capture_output=True, text=True)
 
     try:
         return float(result.stdout.strip())
@@ -26,9 +21,6 @@ def get_audio_duration(path):
         return 0.0
 
 
-# ==========================================
-# FINAL VIDEO BUILDER (SAFE VERSION)
-# ==========================================
 def build_final_video(data):
 
     print("\n==============================")
@@ -41,67 +33,57 @@ def build_final_video(data):
     subtitle = "output/subtitle.srt"
     output = "output/final.mp4"
 
-    # -----------------------------
-    # 1. duration
-    # -----------------------------
+    # ==========================
+    # 안전 체크
+    # ==========================
+    if not os.path.exists(voice):
+        raise Exception("voice missing")
+
+    if not os.path.exists(bg):
+        raise Exception("bg missing")
+
     voice_duration = get_audio_duration(voice)
 
     if voice_duration <= 0:
-        raise Exception("voice duration invalid")
+        voice_duration = 60
 
-    # -----------------------------
-    # 2. BGM 안전 체크 (핵심)
-    # -----------------------------
-    use_bgm = (
-        os.path.exists(bgm)
-        and os.path.getsize(bgm) > 2000
-    )
+    # ==========================
+    # subtitle 존재 체크 (핵심 수정)
+    # ==========================
+    if not os.path.exists(subtitle):
+        print("⚠️ subtitle 없음 → 스킵")
+        subtitle_filter = ""
+    else:
+        subtitle_filter = f"subtitles={subtitle}:force_style='Fontsize=28,PrimaryColour=&HFFFFFF&'"
 
-    if not use_bgm:
-        print("⚠️ BGM 없음 → 무음 모드")
-        bgm = None
+    # ==========================
+    # BGM 체크
+    # ==========================
+    use_bgm = os.path.exists(bgm) and os.path.getsize(bgm) > 2000
 
-    # -----------------------------
-    # 3. subtitle filter
-    # -----------------------------
-    subtitle_filter = f"subtitles={subtitle}:force_style='Fontsize=28,PrimaryColour=&HFFFFFF&'"
-
-    # -----------------------------
-    # 4. ffmpeg command
-    # -----------------------------
     cmd = [
         "ffmpeg",
         "-y",
-
         "-stream_loop", "-1",
         "-i", bg,
-
         "-i", voice,
     ]
 
     if use_bgm:
         cmd += ["-i", bgm]
 
-    cmd += [
-        "-vf", subtitle_filter,
-    ]
+    # subtitle filter
+    if subtitle_filter:
+        cmd += ["-vf", subtitle_filter]
 
-    # -----------------------------
-    # 5. AUDIO MIXING SAFE
-    # -----------------------------
+    # audio
     if use_bgm:
-        filter_complex = (
-            "[1:a]volume=1[a1];"
-            "[2:a]volume=0.15[a2];"
-            "[a1][a2]amix=inputs=2:duration=first[aout]"
-        )
-
         cmd += [
-            "-filter_complex", filter_complex,
+            "-filter_complex",
+            "[1:a]volume=1[a1];[2:a]volume=0.15[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
             "-map", "0:v",
             "-map", "[aout]",
         ]
-
     else:
         cmd += [
             "-map", "0:v",
@@ -116,12 +98,9 @@ def build_final_video(data):
         output
     ]
 
-    print("\n==============================")
-    print(" FFMEG RUN ")
-    print("==============================")
-
+    print("\nFFMPEG RUN")
     subprocess.run(cmd, check=True)
 
-    print("\n🎉 VIDEO DONE:", output)
+    print("DONE:", output)
 
     return output
