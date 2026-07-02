@@ -34,13 +34,13 @@ def generate_content_pack(title, content):
     prompt = f"""
 너는 한국 유튜브 쇼츠 채널 '썰자리'의 콘텐츠 제작 AI다.
 
-아래 Reddit 글을 소재로 조회수가 가장 잘 나올 한국 쇼츠 콘텐츠를 만든다.
+아래 원본 사연을 기반으로 조회수가 가장 잘 나올 한국 쇼츠 콘텐츠를 만든다.
 
 ━━━━━━━━━━━━━━
-[Reddit 제목]
+[원본 제목]
 {title}
 
-[Reddit 내용]
+[원본 내용]
 {content}
 ━━━━━━━━━━━━━━
 
@@ -48,9 +48,9 @@ def generate_content_pack(title, content):
 목표
 ========================
 
-- Reddit 글은 아이디어의 출발점으로만 사용한다.
-- 미국 글을 한국인이 실제 겪은 일처럼 완전히 재창작한다.
-- 번역처럼 보이면 실패다.
+- 원본 사연은 아이디어의 출발점으로만 사용한다.
+- 원본 사연을 한국인이 실제 겪은 일처럼 완전히 재창작한다.
+- 원본을 그대로 옮긴 느낌이 나면 실패다.
 - 블라인드, 네이트판, 에브리타임, 디시인사이드에 실제 올라온 글처럼 자연스러워야 한다.
 - 핵심 갈등만 유지하고 나머지는 자유롭게 변경한다.
 
@@ -478,21 +478,3 @@ JSON 이외의 모든 출력은 금지한다.
     print("❌ Gemini 최종 실패")
 
     return None
-
-
-def select_best_result(results):
-
-    prompt = f"""
-아래 쇼츠 중 가장 CTR 높은 1개만 선택:
-
-{json.dumps(results, ensure_ascii=False, indent=2)}
-
-JSON만 출력
-"""
-
-    response = model.generate_content(prompt)
-    text = response.text.strip()
-
-    data = extract_json(text)
-
-    return data if data else None
