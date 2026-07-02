@@ -1,132 +1,62 @@
-import os
-import json
-import random
 import requests
+import random
+import feedparser
 
-USED_FILE = "output/used_posts.json"
+RSS_FEEDS = [
+    "https://www.yna.co.kr/rss/news.xml",
+    "https://rss.donga.com/total.xml",
+    "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
+]
 
-SUBREDDITS = [
-    "relationship_advice",
-    "TrueOffMyChest",
-    "AITAH",
-    "confession",
-    "offmychest",
-    "AmItheAsshole"
+VIRAL_KEYWORDS = [
+    "살인", "이혼", "결혼", "불륜", "사기",
+    "폭행", "고소", "갈등", "논란",
+    "회사", "해고", "퇴사",
+    "연애", "남친", "여친", "부부",
+    "돈", "빚", "금전",
+    "충돌", "분쟁", "폭로"
+]
+
+BLOCK_KEYWORDS = [
+    "정치", "경제", "주식", "금리", "환율"
 ]
 
 
-def load_used():
-
-    if not os.path.exists(USED_FILE):
-        return []
-
-    try:
-        with open(USED_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
-
-
-def save_used(data):
-
-    os.makedirs("output", exist_ok=True)
-
-    with open(USED_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def fetch_posts(limit=30):
-
-    used = load_used()
+def fetch_news(limit=20):
 
     posts = []
+    random.shuffle(RSS_FEEDS)
 
-    subreddits = SUBREDDITS.copy()
-    random.shuffle(subreddits)
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-
-    for subreddit in subreddits:
+    for feed_url in RSS_FEEDS:
 
         try:
+            feed = feedparser.parse(feed_url)
 
-            url = (
-                f"https://www.reddit.com/r/"
-                f"{subreddit}/hot.json?limit={limit}"
-            )
+            for entry in feed.entries[:limit]:
 
-            response = requests.get(
-                url,
-                headers=headers,
-                timeout=15
-            )
+                title = entry.get("title", "")
+                content = entry.get("summary", "")
 
-            if response.status_code != 200:
-                print(f"{subreddit} 실패 : {response.status_code}")
-                continue
+                text = (title + " " + content).lower()
 
-            data = response.json()
-
-            for item in data["data"]["children"]:
-
-                post = item["data"]
-
-                if post["stickied"]:
+                if any(k in text for k in BLOCK_KEYWORDS):
                     continue
 
-                if post["id"] in used:
+                if not any(k in text for k in VIRAL_KEYWORDS):
                     continue
 
-                if post["over_18"]:
-                    continue
-
-                if len(post.get("selftext", "")) < 200:
+                if len(content) < 200:
                     continue
 
                 posts.append({
-
-                    "id": post["id"],
-
-                    "title": post["title"].strip(),
-
-                    "content": post["selftext"].strip(),
-
-                    "score": post["score"],
-
-                    "comments": post["num_comments"],
-
-                    "subreddit": subreddit
-
+                    "id": entry.get("id", title),
+                    "title": title,
+                    "content": content,
+                    "source": feed_url
                 })
 
         except Exception as e:
+            print(f"RSS 오류: {e}")
 
-            print(f"{subreddit} 오류 :", e)
-
-    posts.sort(
-
-        key=lambda x: (
-
-            x["score"] * 2
-
-            + x["comments"]
-
-        ),
-
-        reverse=True
-
-    )
-
+    random.shuffle(posts)
     return posts
-
-
-def mark_post_as_used(post_id):
-
-    used = load_used()
-
-    if post_id not in used:
-        used.append(post_id)
-
-    save_used(used)
