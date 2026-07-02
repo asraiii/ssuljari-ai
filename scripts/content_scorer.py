@@ -2,71 +2,74 @@ def calculate_score(post):
 
     score = 0
 
+    # ==========================
+    # 기본 인기 점수
+    # ==========================
+    score += post.get("score", 0) * 2
+    score += post.get("comments", 0)
+
+    # ==========================
+    # 텍스트 기반 분석
+    # ==========================
     title = post.get("title", "").lower()
     content = post.get("content", "").lower()
-
     text = title + " " + content
 
-    # 쇼츠에서 잘 먹히는 사건 키워드
-
+    # ==========================
+    # 🔥 바이럴 키워드 (핵심 감정 트리거)
+    # ==========================
     viral_keywords = [
 
-        "이혼",
-        "불륜",
-        "바람",
-        "결혼",
-        "파혼",
-        "폭행",
-        "살인",
-        "사망",
-        "사기",
-        "도박",
-        "횡령",
-        "배신",
-        "충돌",
-        "경찰",
-        "구속",
-        "실종",
-        "납치",
-        "협박",
-        "복수",
-        "반전",
-        "충격",
-        "눈물",
-        "남편",
-        "아내",
-        "남친",
-        "여친",
-        "가족",
-        "엄마",
-        "아빠",
-        "친구",
-        "직장",
-        "회사"
+        "이혼", "결혼", "바람", "불륜", "사기",
+        "폭행", "고소", "협박", "배신",
+        "회사", "해고", "퇴사", "직장",
+        "남친", "여친", "연애", "부부",
+        "돈", "빚", "사기", "금전",
+        "폭로", "갈등", "분쟁",
+        "엄마", "아빠", "가족",
+        "친구", "배신", "거짓말",
+        "임신", "출산", "결별"
 
     ]
 
+    # 키워드 점수
     for keyword in viral_keywords:
-
         if keyword in text:
             score += 40
 
-    # 제목 길이
+    # ==========================
+    # 길이 필터 (핵심)
+    # ==========================
+    length = len(content)
 
-    title_len = len(post.get("title", ""))
+    # 너무 짧으면 감점
+    if length < 500:
+        score -= 200
 
-    if 15 <= title_len <= 40:
-        score += 30
+    # 쇼츠용 최적 구간
+    elif 800 <= length <= 4000:
+        score += 80
 
-    # 본문 길이
+    # 너무 길면 약간 감점
+    elif length > 6000:
+        score -= 50
 
-    length = len(post.get("content", ""))
+    # ==========================
+    # 감정 밀도 보너스
+    # ==========================
+    emotion_words = [
+        "충격", "눈물", "분노", "소름",
+        "미쳤다", "진짜", "들켰다", "끝났다"
+    ]
 
-    if 300 <= length <= 2500:
-        score += 50
+    for w in emotion_words:
+        if w in text:
+            score += 30
 
-    elif length > 2500:
-        score += 20
+    # ==========================
+    # 결과 저장용 (디버그)
+    # ==========================
+    post["ai_score"] = score
 
     return score
 
@@ -76,22 +79,23 @@ def pick_best_post(posts):
     if not posts:
         return None
 
+    # 점수 계산
     for post in posts:
-
         post["ai_score"] = calculate_score(post)
 
+    # 정렬
     posts.sort(
-
         key=lambda x: x["ai_score"],
-
         reverse=True
-
     )
 
-    print("\n==============================")
-    print("      BEST NEWS")
-    print("==============================")
-    print(posts[0]["title"])
-    print("AI SCORE :", posts[0]["ai_score"])
+    # 로그 출력
+    best = posts[0]
 
-    return posts[0]
+    print("\n==============================")
+    print(" BEST CONTENT SELECTED ")
+    print("==============================")
+    print("제목 :", best.get("title"))
+    print("점수 :", best.get("ai_score"))
+
+    return best
