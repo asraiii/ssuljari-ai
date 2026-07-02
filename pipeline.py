@@ -5,7 +5,7 @@ from scripts.content_fetcher import (
     mark_post_as_used
 )
 
-from scripts.reddit_scorer import (
+from scripts.content_scorer import (
     pick_best_post
 )
 
