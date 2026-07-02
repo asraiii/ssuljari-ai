@@ -196,7 +196,7 @@ revenge
 
 반드시 아래 JSON만 출력
 
-{
+{{
 "story":"",
 "title":"",
 "thumbnail":"",
@@ -211,7 +211,7 @@ revenge
 "#쇼츠",
 "#썰자리"
 ]
-}
+}}
 
 JSON 외 출력 금지
 
