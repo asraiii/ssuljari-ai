@@ -16,20 +16,23 @@ from scripts.gemini_writer import (
 from video.video_builder import build_video
 
 
-
 def run():
 
-    print("\n[1] REDDIT FETCH")
+    print("\n======================================")
+    print("           CONTENT FETCH")
+    print("======================================")
 
-    posts = fetch_reddit_posts()
+    posts = fetch_posts()
 
     post = pick_best_post(posts)
 
     if not post:
-        print("❌ No posts found")
+        print("❌ No content found")
         return None
 
-    print("\n[2] GEMINI CONTENT GENERATION")
+    print("\n======================================")
+    print("      GEMINI CONTENT GENERATION")
+    print("======================================")
 
     data = generate_content_pack(
         post["title"],
@@ -37,7 +40,7 @@ def run():
     )
 
     if not isinstance(data, dict):
-        print("❌ Gemini 실패")
+        print("❌ Gemini 생성 실패")
         return None
 
     required_keys = [
@@ -52,20 +55,30 @@ def run():
     ]
 
     if not all(k in data for k in required_keys):
-        print("❌ JSON 구조 실패")
+        print("❌ JSON 구조 오류")
         return None
 
-    print("\n[3] VIDEO BUILD")
+    print("\n======================================")
+    print("          VIDEO BUILD")
+    print("======================================")
 
     video_path = build_video(data)
 
-    print("\n[4] TELEGRAM SEND")
+    if not video_path:
+        print("❌ 영상 생성 실패")
+        return None
+
+    print("\n======================================")
+    print("         TELEGRAM SEND")
+    print("======================================")
 
     send_video(video_path)
 
     mark_post_as_used(post["id"])
 
-    print("\n🎉 COMPLETE")
+    print("\n======================================")
+    print("            COMPLETE")
+    print("======================================")
 
     return video_path
 
