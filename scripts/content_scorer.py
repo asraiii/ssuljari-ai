@@ -1,78 +1,88 @@
+def calculate_score(post):
+
+    score = 0
+
+    # 추천수
+    score += post.get("score", 0) * 2
+
+    # 댓글수
+    score += post.get("comments", 0)
+
+    text = (
+        post.get("title", "") + " " +
+        post.get("content", "")
+    ).lower()
+
+    viral_keywords = [
+
+        "boyfriend",
+        "girlfriend",
+        "wife",
+        "husband",
+        "married",
+        "dating",
+        "cheated",
+        "cheating",
+        "divorce",
+        "pregnant",
+        "baby",
+        "mother",
+        "father",
+        "family",
+        "friend",
+        "best friend",
+        "boss",
+        "manager",
+        "coworker",
+        "money",
+        "inheritance",
+        "wedding",
+        "secret",
+        "lie",
+        "caught",
+        "police",
+        "revenge",
+        "fired",
+        "love",
+        "affair"
+
+    ]
+
+    for keyword in viral_keywords:
+        if keyword in text:
+            score += 30
+
+    length = len(post.get("content", ""))
+
+    if 800 <= length <= 4000:
+        score += 50
+    elif 400 <= length < 800:
+        score += 25
+    elif length < 400:
+        score -= 200
+    elif length > 5000:
+        score -= 100
+
+    return score
+
+
 def pick_best_post(posts):
 
     if not posts:
         return None
 
-    def score(post):
+    for post in posts:
+        post["ai_score"] = calculate_score(post)
 
-        score = 0
-
-        # 추천수
-        score += post.get("score", 0) * 2
-
-        # 댓글수
-        score += post.get("comments", 0)
-
-        text = (
-            post.get("title", "") + " " +
-            post.get("content", "")
-        ).lower()
-
-        # 쇼츠에서 잘 먹히는 키워드
-        keywords = [
-            "boyfriend",
-            "girlfriend",
-            "husband",
-            "wife",
-            "married",
-            "cheating",
-            "divorce",
-            "wedding",
-            "relationship",
-            "mother",
-            "father",
-            "family",
-            "money",
-            "bank",
-            "friend",
-            "boss",
-            "job",
-            "coworker",
-            "secret",
-            "lied",
-            "caught",
-            "pregnant",
-            "text",
-            "phone",
-            "sister",
-            "brother"
-        ]
-
-        for k in keywords:
-            if k in text:
-                score += 100
-
-        # 너무 짧은 글 제외
-        if len(post.get("content", "")) < 500:
-            score -= 300
-
-        # 너무 긴 글 감점
-        if len(post.get("content", "")) > 5000:
-            score -= 100
-
-        return score
-
-    posts = sorted(
-        posts,
-        key=score,
+    posts.sort(
+        key=lambda x: x["ai_score"],
         reverse=True
     )
 
     print("\n==============================")
-    print(" BEST REDDIT POST ")
+    print(" BEST CONTENT ")
     print("==============================")
-
     print("제목 :", posts[0]["title"])
-    print("점수 :", score(posts[0]))
+    print("점수 :", posts[0]["ai_score"])
 
     return posts[0]
