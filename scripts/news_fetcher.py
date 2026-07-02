@@ -1,68 +1,74 @@
-import feedparser
-from datetime import datetime, timedelta
+import requests
+import xml.etree.ElementTree as ET
 
-RSS_FEEDS = [
 
-    # 국내
-    "https://rss.mk.co.kr/rss/30000001/",
-    "https://www.hankyung.com/feed/all-news",
-    "https://rss.etnews.com/Section902.xml",
+RSS_URLS = [
 
-    # 해외
-    "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+    "https://rss.donga.com/total.xml",
+
+    "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
+
+    "https://www.hani.co.kr/rss/"
 
 ]
 
 
-def fetch_news(limit=30):
+def fetch_news():
 
-    articles = []
-    seen = set()
+    posts = []
 
-    for rss in RSS_FEEDS:
+    headers = {
+
+        "User-Agent": "Mozilla/5.0"
+
+    }
+
+    for url in RSS_URLS:
 
         try:
 
-            feed = feedparser.parse(rss)
+            res = requests.get(
 
-            for entry in feed.entries:
+                url,
 
-                title = entry.get("title", "").strip()
+                headers=headers,
 
-                summary = entry.get("summary", "").strip()
+                timeout=10
 
-                link = entry.get("link", "").strip()
+            )
+
+            root = ET.fromstring(res.content)
+
+            for item in root.iter("item"):
+
+                title = item.findtext("title")
+
+                description = item.findtext("description")
+
+                link = item.findtext("link")
 
                 if not title:
+
                     continue
 
-                key = title.lower()
+                if not description:
 
-                if key in seen:
-                    continue
+                    description = title
 
-                seen.add(key)
+                posts.append({
 
-                published = entry.get("published", "")
+                    "title": title.strip(),
 
-                articles.append({
+                    "content": description.strip(),
 
-                    "title": title,
-                    "content": summary,
-                    "url": link,
-                    "published": published
+                    "url": link
 
                 })
 
         except Exception as e:
 
-            print("RSS 실패 :", rss)
+            print(f"RSS 실패 : {url}")
+
             print(e)
 
-    articles.sort(
-        key=lambda x: x["published"],
-        reverse=True
-    )
-
-    return articles[:limit]
+    return posts
