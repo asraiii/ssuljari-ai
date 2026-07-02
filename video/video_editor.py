@@ -1,11 +1,7 @@
 import os
 import subprocess
-import json
 
 
-# ==========================
-# AUDIO DURATION
-# ==========================
 def get_audio_duration(path):
 
     result = subprocess.run(
@@ -17,21 +13,18 @@ def get_audio_duration(path):
             path
         ],
         capture_output=True,
-        text=True,
-        check=True
+        text=True
     )
 
-    return float(result.stdout.strip())
+    try:
+        return float(result.stdout.strip())
+    except:
+        return 60.0
 
 
-# ==========================
-# VIDEO BUILD
-# ==========================
 def build_final_video(data):
 
-    print("\n==============================")
-    print(" VIDEO EDITOR ")
-    print("==============================")
+    print("\nVIDEO EDITOR START")
 
     base = os.getcwd()
 
@@ -41,43 +34,52 @@ def build_final_video(data):
     subtitle = os.path.join(base, "output", "subtitle.srt")
     output = os.path.join(base, "output", "final.mp4")
 
-    # ==========================
-    # subtitle 체크 (핵심)
-    # ==========================
-    if not os.path.exists(subtitle):
-        print("❌ subtitle 파일 없음 → 자막 스킵")
-        subtitle_filter = None
-    else:
-        subtitle_filter = subtitle.replace("\\", "/")  # ffmpeg safe path
-
     voice_duration = get_audio_duration(voice)
 
-    # ==========================
-    # ffmpeg command
-    # ==========================
+    # --------------------------
+    # subtitle 체크 (핵심)
+    # --------------------------
+    subtitle_flag = os.path.exists(subtitle)
+
+    # --------------------------
+    # bgm 체크 (핵심)
+    # --------------------------
+    bgm_flag = os.path.exists(bgm) and os.path.getsize(bgm) > 1000
+
     cmd = [
         "ffmpeg",
         "-y",
         "-stream_loop", "-1",
         "-i", bg,
-        "-i", voice,
-        "-i", bgm,
+        "-i", voice
     ]
 
-    # subtitle filter (SAFE VERSION)
-    if subtitle_filter:
+    if bgm_flag:
+        cmd.append("-i")
+        cmd.append(bgm)
+
+    # subtitle filter
+    vf = "format=yuv420p"
+    if subtitle_flag:
+        vf = f"{vf},subtitles={subtitle}"
+
+    cmd += ["-vf", vf]
+
+    # audio
+    if bgm_flag:
         cmd += [
-            "-vf",
-            f"subtitles='{subtitle_filter}':force_style='Fontsize=28,PrimaryColour=&HFFFFFF&'"
+            "-filter_complex",
+            "[1:a]volume=1[a1];[2:a]volume=0.15[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
+            "-map", "0:v",
+            "-map", "[aout]",
         ]
     else:
-        cmd += ["-vf", "format=yuv420p"]
+        cmd += [
+            "-map", "0:v",
+            "-map", "1:a",
+        ]
 
     cmd += [
-        "-filter_complex",
-        "[1:a]volume=1[a1];[2:a]volume=0.15[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
-        "-map", "0:v",
-        "-map", "[aout]",
         "-t", str(voice_duration),
         "-c:v", "libx264",
         "-c:a", "aac",
@@ -87,7 +89,5 @@ def build_final_video(data):
 
     subprocess.run(cmd, check=True)
 
-    print("\n🎉 FINAL VIDEO 생성 완료")
-    print(output)
-
+    print("VIDEO DONE:", output)
     return output
